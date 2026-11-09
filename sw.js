@@ -1,5 +1,5 @@
 // Saves the app on the phone so it opens with no signal.
-const APP = "sea-trip-app-v1-1";
+const APP = "sea-trip-app-v1-2";
 const TILES = "sea-trip-tiles-v1";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"];
