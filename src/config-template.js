@@ -1,0 +1,1 @@
+window.SEA_GOOGLE_KEY = "PASTE-YOUR-KEY-HERE";

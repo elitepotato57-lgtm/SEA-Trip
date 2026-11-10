@@ -1,0 +1,1495 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F1A1E">
+<title>SE Asia trip app</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap" rel="stylesheet">
+<style>
+/*__LEAFLET_CSS__*/
+:root{
+  --bg:#0F1A1E; --surface:#152329; --raised:#1D3037; --line:#2A424B; --ink:#ECF2EE; --muted:#A3B5B0; --faint:#748A84;
+  --sea:#0A1316; --land:#1A2B31; --land-trip:#23404A; --border-land:#3A5A64;
+  --gaff:#F4B23E; --munch:#F2795A; --cool:#53C79E; --move:#76B7F2; --other:#B9A6E8;
+  --accent:#F4B23E; --on-accent:#1C1406;
+  --font-d:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --font-b:"Atkinson Hyperlegible","Segoe UI",system-ui,-apple-system,sans-serif;
+  color-scheme:dark;
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#0F1A1E; --surface:#152329; } }
+:root[data-theme="dark"]{ --bg:#0F1A1E; --surface:#152329; }
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;background:var(--bg);scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-b);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+svg.i.s{width:16px;height:16px}
+
+/* Home-screen mode: iOS already stops the page above the home indicator, so no extra bottom padding */
+.standalone nav.tabs{padding-bottom:4px}
+/* Experimental (Settings): try to draw into the strip iOS leaves below the page */
+.fill-bottom, .fill-bottom body{height:100vh;overflow:hidden}
+.fill-bottom #app{position:absolute;top:0;left:0;right:0;bottom:auto;height:100vh}
+.fill-bottom nav.tabs{padding-bottom:max(4px, calc(env(safe-area-inset-bottom,0px) - 18px))}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;max-width:600px;margin:0 auto;background:var(--bg);overflow:hidden}
+@media (min-width:620px){ #app{border-left:1px solid var(--line);border-right:1px solid var(--line)} }
+
+.topbar{display:flex;align-items:center;gap:6px;padding:calc(2px + env(safe-area-inset-top,0px)) 8px 9px 4px;background:var(--hdr,var(--surface));flex:none;position:relative}
+.topbar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;background:var(--orn,none) repeat-x left bottom/auto 6px;opacity:.85;pointer-events:none}
+.topbar .icon-btn{width:36px;height:36px;border-radius:11px;background:rgba(255,255,255,.06)}
+.country-btn{display:flex;align-items:center;gap:8px;background:none;border:0;padding:3px 6px;border-radius:12px;text-align:left;cursor:pointer;flex:1;min-width:0}
+.country-btn:hover{background:var(--raised)}
+.country-btn .flag{font-size:21px;line-height:1}
+.country-btn .cname{font-family:var(--font-d);font-weight:700;font-size:16.5px;letter-spacing:-.015em;display:block;line-height:1.1}
+.country-btn .cmode{font-size:12px;line-height:1.2;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon-btn{width:44px;height:44px;display:grid;place-items:center;border-radius:14px;border:1px solid var(--line);background:var(--raised);cursor:pointer;flex:none;text-decoration:none;color:var(--ink)}
+.icon-btn[aria-current="page"]{border-color:var(--accent);color:var(--accent)}
+
+main{flex:1;position:relative;min-height:0}
+#mapview,#pageview{position:absolute;inset:0}
+#pageview{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+[hidden]{display:none !important}
+
+/* Labels sit just above the iPhone home indicator: the 34pt safe area minus the ~18pt the indicator itself needs */
+nav.tabs{display:grid;grid-template-columns:repeat(6,1fr);background:var(--surface);border-top:1px solid var(--line);padding:3px 2px max(4px, calc(env(safe-area-inset-bottom,0px) - 18px));flex:none}
+nav.tabs a{display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px 0 0;color:var(--faint);text-decoration:none;font:600 10.5px/1.15 var(--font-d);letter-spacing:0;white-space:nowrap}
+nav.tabs .ico{width:42px;height:26px;display:grid;place-items:center;border-radius:13px}
+nav.tabs .ico .i{width:21px;height:21px}
+nav.tabs a[aria-current="page"]{color:var(--ink)}
+nav.tabs a[aria-current="page"] .ico{background:var(--tint);color:var(--c)}
+
+[data-theme="TH"]{--accent:#E7B53C;--hdr:#10241F;--motif:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 160' fill='none' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' stroke='%23E7B53C'%3E%3Cpath d='M110 14v24M104 38h12l-6-9z'/%3E%3Cpath d='M64 86 110 48l46 38M64 86q-9 0-11-11M156 86q9 0 11-11'/%3E%3Cpath d='M40 112 110 64l70 48M40 112q-11 0-13-13M180 112q11 0 13-13'/%3E%3Cpath d='M58 112v38M84 112v38M136 112v38M162 112v38M44 150h132'/%3E%3Cpath d='M97 150v-20a13 13 0 0 1 26 0v20'/%3E%3Cpath d='M8 160C12 122 24 98 44 80M26 110c-10-2-18 2-24 10M32 98c-8-6-18-6-27 0M38 88c-4-8-12-12-23-12M44 80c2-8 0-16-6-23'/%3E%3Cpath d='M212 160c-4-34-14-54-30-68M196 122c9-3 16 0 22 7M190 108c8-5 16-5 24 0'/%3E%3C/svg%3E");--orn:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 6'%3E%3Cpath d='M0 6a8 6 0 0 1 16 0' fill='none' stroke='%23E7B53C' stroke-width='1.3'/%3E%3Ccircle cx='8' cy='3.6' r='.9' fill='%23E7B53C'/%3E%3C/svg%3E")}
+[data-theme="KH"]{--accent:#D9A066;--hdr:#221B13;--motif:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 160' fill='none' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' stroke='%23D9A066'%3E%3Cpath d='M110 10c-12 24-22 44-22 70v10h44V80c0-26-10-46-22-70zM94 52h32M90 68h40M88 82h44'/%3E%3Cpath d='M58 44c-9 18-16 32-16 52v8h32v-8c0-20-7-34-16-52zM46 76h24'/%3E%3Cpath d='M162 44c-9 18-16 32-16 52v8h32v-8c0-20-7-34-16-52zM150 76h24'/%3E%3Cpath d='M30 104h160M22 118h176M14 132h192M6 146h208'/%3E%3C/svg%3E");--orn:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 6'%3E%3Cpath d='M7 .6c-2 1.6-3 3-3 5h6c0-2-1-3.4-3-5z' fill='none' stroke='%23D9A066' stroke-width='1.1'/%3E%3C/svg%3E")}
+[data-theme="VN"]{--accent:#F2A33A;--hdr:#2A1614;--motif:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 160' fill='none' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' stroke='%23F2A33A'%3E%3Cpath d='M0 14q110 26 220 0'/%3E%3Cpath d='M50 22v12M110 28v14M170 22v12'/%3E%3Cellipse cx='50' cy='58' rx='20' ry='24'/%3E%3Cpath d='M50 34v48M36 40q-6 18 0 36M64 40q6 18 0 36M42 82h16M50 82v18'/%3E%3Cellipse cx='110' cy='68' rx='24' ry='28'/%3E%3Cpath d='M110 40v56M93 47q-7 21 0 42M127 47q7 21 0 42M100 96h20M110 96v22'/%3E%3Cellipse cx='170' cy='58' rx='20' ry='24'/%3E%3Cpath d='M170 34v48M156 40q-6 18 0 36M184 40q6 18 0 36M162 82h16M170 82v18'/%3E%3C/svg%3E");--orn:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 6'%3E%3Ccircle cx='6' cy='3' r='2' fill='none' stroke='%23F2A33A' stroke-width='1.1'/%3E%3C/svg%3E")}
+[data-theme="LA"]{--accent:#F0C75E;--hdr:#151B2C;--motif:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 160' fill='none' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' stroke='%23F0C75E'%3E%3Cpath d='M110 8v18M104 26h12M100 40c0-8 4-14 10-14s10 6 10 14M92 62c0-12 8-22 18-22s18 10 18 22M80 62h60v14H80zM66 76h88v16H66zM50 92h120v18H50zM34 110h152v18H34zM20 128h180'/%3E%3Cpath d='M190 34a8 8 0 1 0 0 .1M190 26c-3-8-1-14 0-14s3 6 0 14M197 30c7-4 13-3 13-2s-5 5-13 4M196 39c6 5 7 11 6 12s-6-3-8-10M184 39c-6 5-7 11-6 12s6-3 8-10M183 30c-7-4-13-3-13-2s5 5 13 4'/%3E%3C/svg%3E");--orn:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 6'%3E%3Cpath d='M6 .6 9 3 6 5.4 3 3z' fill='none' stroke='%23F0C75E' stroke-width='1.1'/%3E%3C/svg%3E")}
+[data-theme="MY"]{--accent:#F07A8C;--hdr:#24141E;--motif:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 160' fill='none' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' stroke='%23F07A8C'%3E%3Cpath d='M150 80c-14-24-4-50 12-52 10-1 18 10 12 26M150 80c22-16 48-10 50 6 1 10-10 16-26 12M150 80c18 20 14 46-2 50-10 3-18-6-14-22M150 80c-24 8-44-6-42-22 1-10 13-14 26-6M150 80c-26-6-36-30-24-40'/%3E%3Cpath d='M150 80 112 40M112 40l-4-6M112 40l-7-2M112 40l-2-7'/%3E%3Cpath d='M20 150q40-30 70-20M40 140q-4-14 6-24M64 132q0-14 12-20'/%3E%3C/svg%3E");--orn:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 6'%3E%3Ccircle cx='3' cy='3' r='1.1' fill='%23F07A8C'/%3E%3Ccircle cx='9' cy='3' r='.6' fill='%23F07A8C'/%3E%3C/svg%3E")}
+[data-theme="SG"]{--accent:#C79BEF;--hdr:#1D1730;--motif:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 160' fill='none' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' stroke='%23C79BEF'%3E%3Cpath d='M150 70c-6-22 0-46 6-50 6 4 10 28 2 50M150 70c-22-10-38-6-42 0 4 6 22 10 42 4M158 70c22-10 38-6 42 0-4 6-22 10-42 4M146 74c-16 16-18 34-12 38 6-2 14-18 16-34M162 74c16 16 18 34 12 38-6-2-14-18-16-34M146 80c4 16 12 18 16 0'/%3E%3Cpath d='M154 112c0 18-10 34-30 44M30 150c20-40 50-60 94-58'/%3E%3C/svg%3E");--orn:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 6'%3E%3Cpath d='M6 5.4C4 4 4 1.6 6 .6 8 1.6 8 4 6 5.4z' fill='none' stroke='%23C79BEF' stroke-width='1'/%3E%3C/svg%3E")}
+[data-theme="ID"]{--accent:#F2A65A;--hdr:#12231C;--motif:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 160' fill='none' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' stroke='%23F2A65A'%3E%3Cpath d='M40 150V112h12V92h10V72h8V52h10v-24h12v122M180 150V112h-12V92h-10V72h-8V52h-10v-24h-12v122'/%3E%3Cpath d='M20 150h180M92 40v-8M128 40v-8'/%3E%3Cpath d='M200 30a7 7 0 1 0 0 .1M200 23c-3-8-1-13 0-13s3 5 0 13M206 27c7-4 12-3 12-2s-4 5-12 4M205 35c5 5 6 10 5 11s-5-3-7-9M195 35c-5 5-6 10-5 11s5-3 7-9M194 27c-7-4-12-3-12-2s4 5 12 4'/%3E%3C/svg%3E");--orn:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 6'%3E%3Cellipse cx='6' cy='1.8' rx='1.6' ry='1.2' fill='none' stroke='%23F2A65A' stroke-width='.9'/%3E%3Cellipse cx='6' cy='4.2' rx='1.6' ry='1.2' fill='none' stroke='%23F2A65A' stroke-width='.9'/%3E%3C/svg%3E")}
+/* map */
+#map{position:absolute;inset:0;background:var(--sea);font-family:var(--font-b)}
+.leaflet-container{background:var(--sea)}
+.leaflet-control-attribution{background:rgba(10,19,22,.75)!important;color:var(--faint)!important;font-size:10.5px}
+.city-label span{position:absolute;transform:translate(-50%,7px);white-space:nowrap;font:600 12px var(--font-b);color:var(--muted);text-shadow:0 0 3px var(--sea),0 0 6px var(--sea);pointer-events:none;opacity:0;transition:opacity .2s}
+#map.show-cities .city-label span{opacity:1}
+.map-top{position:absolute;top:8px;left:0;right:0;z-index:600;display:flex;gap:6px;overflow-x:auto;padding:0 10px;scrollbar-width:none}
+.map-top::-webkit-scrollbar{display:none}
+.chip{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 11px;border-radius:17px;border:1px solid var(--line);background:rgba(21,35,41,.94);color:var(--muted);font:700 14px var(--font-b);cursor:pointer;white-space:nowrap}
+.chip[aria-pressed="true"]{color:var(--ink);border-color:var(--c,var(--accent))}
+.chip .dot{width:11px;height:11px;border-radius:50%;background:var(--c);flex:none}
+.chip[aria-pressed="false"] .dot{background:transparent;box-shadow:inset 0 0 0 2px var(--c)}
+.map-side{position:absolute;right:8px;bottom:150px;z-index:600;display:flex;flex-direction:column;gap:7px}
+.map-side .icon-btn{width:40px;height:40px;border-radius:12px;background:rgba(29,48,55,.96)}
+.map-side .icon-btn[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+.basemap{display:none}
+.basemap .seg{background:rgba(29,48,55,.96);border:1px solid var(--line)}
+#map.sat .city-label span{display:none}
+.leaflet-control-attribution{background:rgba(10,19,22,.8)!important;color:var(--muted)!important;font-size:10.5px}
+.filter-panel{position:absolute;top:104px;left:10px;right:10px;z-index:650;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;display:grid;gap:12px}
+.near{position:absolute;left:0;right:0;bottom:0;z-index:600;padding:0 0 8px}
+.near-title{display:inline-flex;align-items:center;gap:4px;margin:0 0 6px 8px;padding:4px 10px;border-radius:10px;background:rgba(21,35,41,.94);border:1px solid var(--line);font:700 12.5px var(--font-b);color:var(--muted);cursor:pointer}
+.near-title .i{width:15px;height:15px;transition:transform .15s}
+.near.closed .near-title .i{transform:rotate(180deg)}
+.near-row{display:flex;gap:7px;overflow-x:auto;padding:0 8px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.near-row::-webkit-scrollbar{display:none}
+.ncard{flex:none;width:68%;max-width:260px;scroll-snap-align:start;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:7px 11px;text-align:left;cursor:pointer;display:grid;gap:1px}
+.ncard .k{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}
+.ncard .k .dot{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.ncard b{font:700 14.5px/1.2 var(--font-d);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ncard .m{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.map-msg{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--muted)}
+
+/* pages */
+.page{padding:18px 16px 32px;position:relative}
+.page::before{content:"";position:absolute;top:2px;right:-6px;width:200px;height:146px;background:var(--motif,none) no-repeat right top/contain;opacity:.26;pointer-events:none}
+.page > *{position:relative}
+.page h1{font:800 44px/0.95 var(--font-d);letter-spacing:-.035em;margin:0}
+.page .sub{color:var(--muted);margin:6px 0 16px;font-size:15.5px}
+.page h2{font:700 22px/1.15 var(--font-d);letter-spacing:-.02em;margin:0 0 4px}
+.block{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin:0 0 14px}
+.block p{margin:0 0 10px}
+.note{font-size:13.5px;color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.scroller{display:flex;gap:6px;overflow-x:auto;margin:0 -16px 10px;padding:0 16px;scrollbar-width:none}
+.scroller::-webkit-scrollbar{display:none}
+.scroller .chip{background:var(--surface);height:36px}
+.seg{display:inline-flex;background:var(--raised);border-radius:12px;padding:3px;gap:2px}
+.seg button{border:0;background:none;padding:7px 12px;border-radius:9px;font-weight:700;font-size:14px;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink)}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.field{display:grid;gap:4px;font-size:13px;color:var(--muted);flex:1;min-width:130px}
+select,input[type=text],input[type=number],input[inputmode],textarea{background:var(--raised);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:16px;width:100%;color:var(--ink)}
+select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat;padding-right:32px}
+textarea{min-height:90px;resize:vertical}
+.live{display:grid;gap:8px;padding:12px 14px;border:1px dashed var(--line);border-radius:16px;margin:0 0 14px}
+.live .row{gap:6px}
+.card{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;margin:0 0 10px;cursor:pointer}
+.card:hover{border-color:var(--faint)}
+.card .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.card h3{font:700 18px/1.2 var(--font-d);letter-spacing:-.01em;margin:0}
+.card .city{font-size:13.5px;color:var(--muted)}
+.price{font-weight:700;text-align:right;white-space:nowrap}
+.price small{display:block;font-weight:400;color:var(--muted);font-size:12.5px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 12px;color:var(--muted);font-size:13.5px;margin-top:8px;align-items:center}
+.tag{font-size:12.5px;padding:3px 9px;border-radius:999px;background:var(--raised);color:var(--muted)}
+.tag.warn{color:#E9C27A}
+.tag.good{color:var(--cool)}
+.tr-out{margin-top:12px}
+.tr-res{display:flex;gap:10px;align-items:flex-start;background:var(--raised);border-radius:14px;padding:14px}
+.tr-text{flex:1;font-size:24px;line-height:1.35;color:var(--ink);word-break:break-word}
+.cphoto{height:150px;margin:10px 0 8px;border-radius:12px;background:var(--raised);overflow:hidden;position:relative}
+.cphoto img{width:100%;height:100%;object-fit:cover;display:block}
+.cphoto .credit{position:absolute;left:6px;bottom:6px;font-size:11px;background:rgba(10,19,22,.78);color:var(--ink);padding:2px 7px;border-radius:7px}
+.ptrack{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.ptrack::-webkit-scrollbar{display:none}
+.pslide{flex:0 0 100%;scroll-snap-align:center;height:240px;background:var(--raised)}
+.pslide img{width:100%;height:100%;object-fit:cover;display:block}
+.pcount{position:absolute;right:8px;top:8px;font-size:12px;font-weight:700;background:rgba(10,19,22,.8);color:var(--ink);padding:3px 8px;border-radius:9px}
+.pdots{position:absolute;left:0;right:0;bottom:36px;display:flex;justify-content:center;gap:5px;pointer-events:none}
+.pdots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.45)}
+.pdots i.on{background:#fff}
+.sfield{position:relative}
+.sfield input{width:100%;-webkit-appearance:none;appearance:none;background:var(--raised);border:1px solid var(--line);border-radius:12px;padding:11px 12px;font:600 16px var(--font-b);color:var(--ink);min-width:0}
+.sfield input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.sfield input::placeholder{color:var(--faint)}
+.sfield input::-webkit-search-cancel-button{display:none}
+.sugs{position:absolute;left:0;right:0;top:100%;margin-top:4px;z-index:50;background:var(--raised);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.sugs button{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:10px 12px;color:var(--ink);cursor:pointer;font-size:15px}
+.sugs button:first-child{border-top:0}
+.sugs button small{display:block;color:var(--muted);font-size:12.5px;margin-top:1px}
+.sugs .hd{padding:7px 12px 3px;font-size:12px;color:var(--faint);border-top:1px solid var(--line)}
+.tmap{height:260px;border-radius:16px;overflow:hidden;border:1px solid var(--line);margin:0 0 6px;background:var(--sea)}
+.plan{display:grid;gap:10px}
+.plan .pair{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:end}
+.trip{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;margin:0 0 10px;cursor:pointer}
+.trip[aria-pressed="true"]{border-color:var(--move)}
+.trip .sum{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.trip .big{font:800 22px/1.1 var(--font-d);letter-spacing:-.02em}
+.leg{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.leg:first-of-type{border-top:0}
+.leg .li{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:var(--raised);color:var(--move)}
+.leg b{font:700 15px var(--font-d)}
+.leg .m{font-size:13.5px;color:var(--muted)}
+.badge{display:inline-block;font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(118,183,242,.18);color:var(--move);margin-right:6px}
+.badge.cheap{background:rgba(83,199,158,.18);color:var(--cool)}
+.getthere{font-size:13.5px;color:var(--muted);background:var(--raised);border-radius:12px;padding:10px 12px;margin-top:10px}
+details.more{margin-top:8px}
+details.more summary{cursor:pointer;color:var(--muted);font-size:13.5px}
+.photo .credit a{color:inherit}
+.photo-next{position:absolute;right:8px;top:8px;border:0;border-radius:10px;background:rgba(10,19,22,.8);color:var(--ink);font-weight:700;padding:6px 10px;cursor:pointer}
+.empty{border:1px dashed var(--line);border-radius:16px;padding:18px;color:var(--muted)}
+.empty b{color:var(--ink);display:block;margin-bottom:4px;font-family:var(--font-d);font-size:17px}
+.stars{display:inline-flex;align-items:center;gap:6px;color:var(--ink);font-weight:700}
+.st5{position:relative;display:inline-flex;height:14px}
+.st5 .on{position:absolute;inset:0 auto 0 0;overflow:hidden;display:inline-flex;white-space:nowrap}
+.st5 svg{width:14px;height:14px;flex:none}
+.st5 .off svg{fill:var(--line)}
+.st5 .on svg{fill:var(--accent)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 16px;border-radius:14px;font-weight:700;font-size:15px;text-decoration:none;cursor:pointer;border:1px solid var(--line);background:var(--raised);color:var(--ink);text-align:center}
+.btn.small{min-height:36px;padding:0 12px;font-size:14px;border-radius:11px}
+.btn.primary{background:var(--accent);color:var(--on-accent);border-color:transparent}
+.btn.ghost{background:none}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+
+/* sheet */
+.sheet-wrap{position:fixed;inset:0;z-index:2000}
+.backdrop{position:absolute;inset:0;background:rgba(4,9,11,.62)}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-width:600px;margin:0 auto;max-height:90%;overflow-y:auto;background:var(--surface);border-radius:24px 24px 0 0;border-top:1px solid var(--line);padding:10px 18px 0;padding-bottom:calc(26px + env(safe-area-inset-bottom,0px));animation:up .2s ease-out}
+@keyframes up{from{transform:translateY(28px);opacity:.5}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+.grab{width:42px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
+.sheet-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.kind{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;color:var(--muted);font-weight:700}
+.kind .dot{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.sheet h2{font:800 30px/1.02 var(--font-d);letter-spacing:-.03em;margin:6px 0 2px}
+.photo.has-img{padding:0;overflow:hidden;position:relative;display:block}
+.photo img{display:block;width:100%;height:220px;object-fit:cover}
+.photo .credit{position:absolute;left:8px;right:auto;bottom:8px;max-width:calc(100% - 16px);font-size:12px;background:rgba(10,19,22,.8);color:var(--ink);padding:4px 9px;border-radius:9px;text-decoration:none}
+.photo{min-height:112px;border-radius:16px;background:var(--raised);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted);margin:14px 0;padding:14px;text-align:center;font-size:14px}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.fact{background:var(--raised);border-radius:12px;padding:10px 12px;font-size:14.5px}
+.fact .l{display:block;font-size:12.5px;color:var(--muted)}
+.fact.wide{grid-column:1/-1}
+.fact .unk{color:var(--faint)}
+ul.known{margin:8px 0 0;padding-left:18px}
+ul.known li{margin:3px 0}
+.srcs{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;margin-top:6px}
+.srcs a{color:var(--muted)}
+h4{font:700 15px var(--font-d);margin:16px 0 4px;letter-spacing:-.01em}
+
+/* tools */
+.conv{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:end}
+.conv .field{min-width:0}
+.big-in{font:700 22px var(--font-d)!important;padding:12px!important}
+.quick{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:12px}
+.quick div{background:var(--raised);border-radius:10px;padding:8px 10px;font-size:14px;display:flex;justify-content:space-between;gap:8px}
+.quick span{color:var(--muted)}
+.totals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.totals div{background:var(--raised);border-radius:12px;padding:10px}
+.totals b{display:block;font:800 20px var(--font-d)}
+.totals span{font-size:12.5px;color:var(--muted)}
+.spend{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.spend .dot{width:10px;height:10px;border-radius:50%;background:var(--c);flex:none}
+.spend .what{flex:1;min-width:0}
+.spend .what small{display:block;color:var(--muted)}
+.spend .amt{text-align:right;font-weight:700;white-space:nowrap}
+.spend .amt small{display:block;color:var(--muted);font-weight:400}
+.daylabel{font:700 13px var(--font-b);color:var(--muted);margin:14px 0 2px}
+.rate-row{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.rate-row label{font-weight:700;min-width:90px}
+.rate-row small{grid-column:1/-1;color:var(--muted);font-size:12.5px;margin-top:-4px}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cgrid button{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--raised);cursor:pointer;text-align:left;font-weight:700}
+.cgrid button[aria-pressed="true"]{border-color:var(--accent)}
+.cgrid .f{font-size:22px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:3000;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:14px;font-weight:700;font-size:14.5px;display:flex;gap:12px;align-items:center;max-width:92%}
+.toast button{background:none;border:0;color:var(--bg);text-decoration:underline;font-weight:700;cursor:pointer}
+.vis-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <button class="country-btn" id="countryBtn" aria-label="Change country"></button>
+    <a class="icon-btn" href="#setup" id="setupBtn" aria-label="Settings"></a>
+  </header>
+  <main>
+    <section id="mapview" aria-label="Map"></section>
+    <section id="pageview" hidden></section>
+  </main>
+  <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+</div>
+<div id="sheetRoot"></div>
+<div id="toastRoot" aria-live="polite"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const GEO = __GEO__;
+const D = __DATA__;
+const VERSION = "1.4.2";
+// Google photos: paste your Google Maps API key between the quotes so everyone using this file gets photos.
+const GOOGLE_KEY_IN_FILE = "";
+
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const enc = encodeURIComponent;
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const IC = {
+  pin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+  bed:'<path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/>',
+  food:'<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
+  compass:'<circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z"/>',
+  bus:'<path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/>',
+  wrench:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  cog:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  locate:'<line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/>',
+  ext:'<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+  nav:'<polygon points="3 11 22 2 13 21 11 13 3 11"/>',
+  train:'<rect width="16" height="16" x="4" y="3" rx="2"/><path d="M4 11h16"/><path d="M12 3v8"/><path d="m8 19-2 3"/><path d="m18 22-2-3"/><path d="M8 15h.01"/><path d="M16 15h.01"/>',
+  ship:'<path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/><path d="M12 10v4"/><path d="M12 2v3"/>',
+  plane:'<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+  x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  sliders:'<path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/>',
+  route:'<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>',
+  swap:'<path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>',
+  copy:'<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  trash:'<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+  image:'<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
+  globe:'<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
+  speaker:'<path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  chev:'<path d="m6 15 6-6 6 6"/>',
+  car:'<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/>',
+  layers:'<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+  fit:'<path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>'
+};
+const icon = (n, cls = "i") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${IC[n]}</svg>`;
+const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+
+const CAT = {
+  gaff:  {label:"Gaffs",     one:"Gaff",          ic:"bed",     v:"--gaff",  sub:"Places to stay"},
+  munch: {label:"Munch",     one:"Munch",         ic:"food",    v:"--munch", sub:"Places to eat"},
+  cool:  {label:"Activities", one:"Activity",     ic:"compass", v:"--cool",  sub:"Things to do"},
+  move:  {label:"Transport", one:"Transport hub", ic:"bus",     v:"--move",  sub:"Getting around"}
+};
+const TABS = [
+  {id:"map", label:"Map", ic:"pin", v:"--accent"},
+  {id:"gaffs", label:"Gaffs", ic:"bed", v:"--gaff", cat:"gaff"},
+  {id:"munch", label:"Munch", ic:"food", v:"--munch", cat:"munch"},
+  {id:"activities", label:"Activities", ic:"compass", v:"--cool", cat:"cool"},
+  {id:"transport", label:"Transport", ic:"bus", v:"--move"},
+  {id:"tools", label:"Tools", ic:"wrench", v:"--other"}
+];
+const VIEWS = ["map","gaffs","munch","activities","transport","tools","setup"];
+const GAFF_TYPES = ["Hostel","Guesthouse","Hotel","Villa"];
+const COOL_TYPES = ["Temples","Hikes","Views","Beaches","Diving","Waterfalls","Markets","Nightlife","Excursions","Museums"];
+const SYM = {GBP:"£",THB:"฿",USD:"$",VND:"₫",LAK:"₭",MYR:"RM ",SGD:"S$",IDR:"Rp ",KHR:"៛"};
+const CUR_NAME = {GBP:"Pounds",THB:"Thai baht",USD:"US dollars",VND:"Vietnamese dong",LAK:"Lao kip",MYR:"Malaysian ringgit",SGD:"Singapore dollars",IDR:"Indonesian rupiah",KHR:"Cambodian riel"};
+const NOTES = {THB:[20,100,500,1000],USD:[1,5,10,20],VND:[10000,50000,100000,500000],KHR:[1000,10000,20000,50000],LAK:[10000,50000,100000,200000],MYR:[5,10,50,100],SGD:[2,5,10,50],IDR:[10000,50000,100000,500000]};
+
+/* ---------- state ---------- */
+const LS_KEY = "sea-trip-app-v1";
+function loadState(){ try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch(e){ return {}; } }
+let S = Object.assign({countryMode:"auto", country:"TH", rates:{}, testLoc:"Bangkok", gkey:"", nearClosed:false, fillBottom:false}, loadState());
+if (!D.countries[S.country]) S.country = "TH";
+function persist(){ try { localStorage.setItem(LS_KEY, JSON.stringify({countryMode:S.countryMode, country:S.country, rates:S.rates, testLoc:S.testLoc, gkey:S.gkey, nearClosed:S.nearClosed, fillBottom:S.fillBottom})); } catch(e){} }
+
+let userLoc = null, locStatus = "idle";
+const ui = {
+  view:"map",
+  lists:{
+    gaff:{radius:0, types:new Set(), sort:"near", maxGBP:"", minR:0},
+    munch:{radius:0, types:new Set(), sort:"near", maxGBP:"", minR:0},
+    cool:{radius:0, types:new Set(), sort:"near", maxGBP:"", minR:0}
+  },
+  mapCats:new Set(["gaff","munch","cool"]), basemap:"map", satHelp:false, satChecking:false, mapSort:"near", mapMinR:0, mapMaxGBP:"", showRoute:false, mapFilters:false,
+  tp:{from:null, to:null, sort:"fast", sel:0}
+};
+
+/* ---------- money ---------- */
+const rate = cur => (S.rates[cur] > 0 ? S.rates[cur] : D.rates[cur].v);
+const toGBP = (amt, cur) => amt / rate(cur);
+function fmtNum(v){
+  if (v >= 100) return Math.round(v).toLocaleString("en-GB");
+  const r = Math.round(v * 100) / 100;
+  return r.toLocaleString("en-GB", {minimumFractionDigits: r % 1 ? 2 : 0, maximumFractionDigits: 2});
+}
+const money = (v, cur) => (SYM[cur] || cur + " ") + fmtNum(v);
+function rangeText(p, cur){
+  if (!p) return null;
+  return p.length > 1 && p[1] !== p[0] ? `${money(p[0], cur)}–${fmtNum(p[1])}` : money(p[0], cur);
+}
+function gbpRange(p, cur){
+  if (!p) return null;
+  const a = toGBP(p[0], cur), b = p.length > 1 ? toGBP(p[1], cur) : null;
+  return b && Math.abs(b - a) > 0.004 ? `£${fmtNum(a)}–${fmtNum(b)}` : `£${fmtNum(a)}`;
+}
+const gbpMin = it => it.p ? toGBP(it.p[0], it.cur) : null;
+const dispCur = (cc, fallback) => (cc && D.countries[cc]) ? D.countries[cc].cur : fallback;
+const convert = (v, from, to) => from === to ? v : v / rate(from) * rate(to);
+function niceRound(v, cur){
+  if (cur === "VND" || cur === "LAK" || cur === "IDR") return v >= 10000 ? Math.round(v / 1000) * 1000 : Math.round(v / 100) * 100;
+  if (cur === "KHR") return Math.round(v / 500) * 500;
+  if (cur === "THB") return v >= 50 ? Math.round(v / 5) * 5 : Math.round(v);
+  return v >= 20 ? Math.round(v) : Math.round(v * 2) / 2;
+}
+function localRange(p, from, to){
+  if (!p) return null;
+  const vals = p.map(x => from === to ? x : niceRound(convert(x, from, to), to));
+  return vals.length > 1 && vals[1] !== vals[0] ? `${money(vals[0], to)}–${fmtNum(vals[1])}` : money(vals[0], to);
+}
+const itemLocal = it => localRange(it.p, it.cur, dispCur(it.cc, it.cur));
+const routeLocal = r => localRange(r.p, r.cur, dispCur(r.cc[0], r.cur));
+
+/* ---------- geo ---------- */
+function dist(a, b){
+  const R = 6371, toR = x => x * Math.PI / 180;
+  const dLa = toR(b.lat - a.lat), dLo = toR(b.lng - a.lng);
+  const h = Math.sin(dLa/2)**2 + Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLo/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+const distText = km => km < 1 ? `${Math.round(km*1000)} m away` : km < 20 ? `${km.toFixed(1)} km away` : `${Math.round(km).toLocaleString("en-GB")} km away`;
+function inRing(lat, lng, ring){
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++){
+    const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+    if (((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)) inside = !inside;
+  }
+  return inside;
+}
+function countryAt(lat, lng){
+  for (const c of GEO){ if (c.cc && c.p.some(r => inRing(lat, lng, r))) return c.cc; }
+  // small islands may be missing from the outline, so fall back to a nearby trip city
+  let best = null, bestKm = 60;
+  for (const p of D.places){ const km = dist({lat, lng}, p); if (km < bestKm){ bestKm = km; best = p.cc; } }
+  return best;
+}
+
+/* ---------- links ---------- */
+const q = it => `${it.n}, ${it.city}`;
+const L_maps = it => `https://www.google.com/maps/search/?api=1&query=${enc(q(it))}`;
+const L_dir = it => `https://www.google.com/maps/dir/?api=1&destination=${enc(q(it))}`;
+const L_apple = it => `https://maps.apple.com/?daddr=${enc(q(it))}`;
+const L_booking = s => `https://www.booking.com/searchresults.html?ss=${enc(s)}`;
+const L_google = s => `https://www.google.com/search?q=${enc(s)}`;
+const ext = (href, label, cls = "btn small") => `<a class="${cls}" href="${esc(href)}" target="_blank" rel="noopener">${label}</a>`;
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg, undo){
+  const root = $("#toastRoot");
+  root.innerHTML = `<div class="toast" role="status"><span>${esc(msg)}</span>${undo ? '<button type="button" id="undoBtn">Undo</button>' : ""}</div>`;
+  if (undo) $("#undoBtn").onclick = () => { undo(); root.innerHTML = ""; };
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => root.innerHTML = "", undo ? 6000 : 3200);
+}
+
+/* ---------- header & nav ---------- */
+function renderHeader(){
+  const c = D.countries[S.country];
+  document.documentElement.dataset.theme = S.country;
+  let mode;
+  if (S.countryMode === "manual") mode = "Chosen by you";
+  else if (locStatus === "test") mode = `Test location: ${S.testLoc}`;
+  else if (locStatus === "ok") mode = "From your location";
+  else if (locStatus === "asking") mode = "Finding you…";
+  else if (locStatus === "outside") mode = "You’re outside the trip countries";
+  else if (locStatus === "denied") mode = "Location is off, tap to pick";
+  else mode = "Location unavailable, tap to pick";
+  $("#countryBtn").innerHTML = `<span class="flag" aria-hidden="true">${c.flag}</span><span style="min-width:0"><span class="cname">${esc(c.name)}</span><span class="cmode">${esc(mode)}</span></span>`;
+  $("#setupBtn").innerHTML = icon("cog");
+  $("#setupBtn").setAttribute("aria-current", ui.view === "setup" ? "page" : "false");
+}
+function renderNav(){
+  $("#tabs").innerHTML = TABS.map(t => {
+    const col = cssv(t.v);
+    return `<a href="#${t.id}" style="--c:${col};--tint:${col}33" ${ui.view === t.id ? 'aria-current="page"' : ""}><span class="ico">${icon(t.ic)}</span>${t.label}</a>`;
+  }).join("");
+}
+
+/* ---------- routing ---------- */
+function currentView(){ const h = (location.hash || "").slice(1); return VIEWS.includes(h) ? h : "map"; }
+function show(view){
+  ui.view = view;
+  renderHeader(); renderNav();
+  const isMap = view === "map";
+  $("#mapview").hidden = !isMap; $("#pageview").hidden = isMap;
+  if (isMap){ ensureMap(); if (map) setTimeout(() => map.invalidateSize(), 0); renderMapUI(); }
+  else { renderPage(); $("#pageview").scrollTop = 0; }
+}
+window.addEventListener("hashchange", () => show(currentView()));
+function rerender(){ if (ui.view === "map") renderMapUI(); else renderPage(); renderHeader(); }
+
+/* ---------- filtering & sorting ---------- */
+function bestScore(it){
+  const r = it.r ? it.r / 10 : 0.5;
+  const g = gbpMin(it); const cheap = g == null ? 0.4 : Math.max(0, 1 - g / 25);
+  let near = 0.5; if (userLoc){ near = Math.max(0, 1 - dist(userLoc, it) / 50); }
+  return r * 0.4 + cheap * 0.4 + near * 0.2;
+}
+function sortItems(items, how){
+  const arr = items.slice();
+  const nullLast = (a, b, f, dir) => { const x = f(a), y = f(b); if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return dir * (x - y); };
+  if (how === "near" && userLoc) arr.sort((a, b) => dist(userLoc, a) - dist(userLoc, b));
+  else if (how === "rated") arr.sort((a, b) => nullLast(a, b, x => x.r, -1));
+  else if (how === "dear") arr.sort((a, b) => nullLast(a, b, gbpMin, -1));
+  else if (how === "match") arr.sort((a, b) => bestScore(b) - bestScore(a));
+  else if (how === "az") arr.sort((a, b) => a.n.localeCompare(b.n));
+  else if (how === "near") arr.sort((a, b) => nullLast(a, b, x => x.r, -1) || nullLast(a, b, gbpMin, 1));
+  else arr.sort((a, b) => nullLast(a, b, gbpMin, 1) || nullLast(a, b, x => x.r, -1));
+  return arr;
+}
+function passPrice(it, maxGBP){ if (!maxGBP) return true; const g = gbpMin(it); return g == null || g <= +maxGBP; }
+function passRating(it, minR){ return !minR || (it.r != null && it.r / 2 >= minR); }
+
+/* ---------- small renderers ---------- */
+function starsHTML(r){
+  if (r == null) return "";
+  const five = r / 2, pct = Math.max(0, Math.min(100, five / 5 * 100));
+  const row = STAR.repeat(5);
+  return `<span class="stars"><span class="st5" aria-hidden="true"><span class="off">${row}</span><span class="on" style="width:${pct}%">${row}</span></span>${five.toFixed(1)}<span class="vis-hidden"> out of 5</span></span>`;
+}
+function priceBlock(it){
+  const loc = itemLocal(it);
+  if (!loc) return `<div class="price"><small>${it.cost ? esc(it.cost) : "Price: check live"}</small></div>`;
+  return `<div class="price">${esc(loc)}<small>${esc(gbpRange(it.p, it.cur))}</small></div>`;
+}
+function itemCard(it){
+  const c = CAT[it.c];
+  const km = userLoc ? distText(dist(userLoc, it)) : null;
+  const tags = (it.c === "cool" ? it.t : []).map(t => `<span class="tag">${esc(t)}</span>`).join("");
+  const rating = it.r != null ? `${starsHTML(it.r)}<span>${esc(it.rs)}</span>` : (it.c === "gaff" ? `<span>No rating saved yet</span>` : "");
+  const bf = it.c === "gaff" && it.d && /^(Included|Free)/.test(it.d.breakfast || "") ? '<span class="tag good">Breakfast included</span>' : "";
+  const ph = (googleKey() || it.wp) && it.c !== "move" ? `<div class="cphoto" data-ph="${it.id}"></div>` : "";
+  return `<button class="card" data-open="${it.id}" style="--c:${cssv(c.v)}">
+    <div class="top"><div><h3>${esc(it.n)}</h3><div class="city">${esc(it.city)}</div></div>${priceBlock(it)}</div>${ph}
+    <div class="meta">${rating}${km ? `<span>${km}</span>` : ""}${bf}${tags}${it.verified ? "" : '<span class="tag warn">Not checked yet</span>'}</div>
+  </button>`;
+}
+function emptyBlock(title, body, actions = ""){ return `<div class="empty"><b>${esc(title)}</b>${body}${actions ? `<div class="row" style="margin-top:12px">${actions}</div>` : ""}</div>`; }
+
+/* ---------- list pages (Gaffs, Munch, Activities) ---------- */
+const RADII = [[2, "Within 2 km"], [10, "10 km"], [50, "50 km"], [0, "Anywhere"]];
+function listPage(cat){
+  const st = ui.lists[cat], c = CAT[cat];
+  let items = D.places.filter(p => p.c === cat);
+  const haveLoc = !!userLoc;
+  if (haveLoc && st.radius) items = items.filter(p => dist(userLoc, p) <= st.radius);
+  if (st.types.size) items = items.filter(p => p.t.some(t => st.types.has(t)));
+  items = items.filter(p => passPrice(p, st.maxGBP) && passRating(p, st.minR));
+  const sortHow = st.sort === "near" && !haveLoc ? (cat === "cool" ? "az" : "cheap") : st.sort;
+  items = sortItems(items, sortHow);
+
+  let html = `<div class="page"><h1>${c.label}</h1><p class="sub">${haveLoc ? `${c.sub}, nearest to you first` : `${c.sub}. Turn on location to see what’s nearest.`}</p>`;
+  html += `<div class="scroller" aria-label="Distance">${RADII.map(([r, l]) => `<button class="chip" data-radius="${r}" aria-pressed="${+st.radius === r}" ${haveLoc ? "" : "disabled"}>${l}</button>`).join("")}</div>`;
+  const types = cat === "gaff" ? GAFF_TYPES : cat === "cool" ? COOL_TYPES : [];
+  if (types.length) html += `<div class="scroller" aria-label="Types">${types.map(t => `<button class="chip" style="--c:${cssv(c.v)}" data-type="${t}" aria-pressed="${st.types.has(t)}"><span class="dot"></span>${t}</button>`).join("")}</div>`;
+  const sorts = cat === "gaff" ? [["near","Nearest"],["cheap","Cheapest first"],["rated","Best reviewed"],["dear","Priciest first"],["match","Best match"]]
+              : cat === "munch" ? [["near","Nearest"],["cheap","Cheapest first"],["dear","Priciest first"]]
+              : [["near","Nearest"],["az","A to Z"]];
+  html += `<div class="controls"><label class="field">Sort<select data-sort>${sorts.map(([v,l]) => `<option value="${v}" ${st.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>`;
+  if (cat === "gaff"){
+    html += `<label class="field">Top price a night<select data-max>${[["","Any"],["5","£5"],["8","£8"],["10","£10"],["15","£15"],["20","£20"]].map(([v,l]) => `<option value="${v}" ${String(st.maxGBP) === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+      <label class="field">Reviews<select data-minr>${[[0,"Any"],[4,"4 stars and up"],[4.5,"4.5 stars and up"]].map(([v,l]) => `<option value="${v}" ${+st.minR === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>`;
+  }
+  if (cat === "munch"){
+    html += `<label class="field">Top price a dish<select data-max>${[["","Any"],["1","£1"],["2","£2"],["4","£4"]].map(([v,l]) => `<option value="${v}" ${String(st.maxGBP) === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>`;
+  }
+  html += `</div>`;
+  if (!items.length){
+    html += emptyBlock(st.radius ? `Nothing saved within ${st.radius} km` : "Nothing matches these filters",
+      `<div>${st.radius ? "The sample data doesn’t cover this spot yet. Widen the distance to see the nearest places." : "Try loosening a filter."}</div>`,
+      st.radius ? `<button class="btn small" data-anywhere type="button">Show anywhere</button>` : "");
+  } else {
+    html += items.map(itemCard).join("");
+    html += `<p class="note">${items.length} saved ${items.length === 1 ? "place" : "places"}. Places marked “not checked yet” use typical prices rather than prices we looked up.</p>`;
+  }
+  html += `</div>`;
+  return html;
+}
+function bindList(cat){
+  const st = ui.lists[cat], root = $("#pageview");
+  root.querySelectorAll("[data-radius]").forEach(b => b.onclick = () => { st.radius = +b.dataset.radius; renderPage(); });
+  const any = root.querySelector("[data-anywhere]"); if (any) any.onclick = () => { st.radius = 0; renderPage(); };
+  root.querySelectorAll("[data-type]").forEach(b => b.onclick = () => { const t = b.dataset.type; st.types.has(t) ? st.types.delete(t) : st.types.add(t); renderPage(); });
+  const so = root.querySelector("[data-sort]"); if (so) so.onchange = () => { st.sort = so.value; renderPage(); };
+  const mx = root.querySelector("[data-max]"); if (mx) mx.onchange = () => { st.maxGBP = mx.value; renderPage(); };
+  const mr = root.querySelector("[data-minr]"); if (mr) mr.onchange = () => { st.minR = +mr.value; renderPage(); };
+  watchCardPhotos(root);
+}
+
+/* ---------- transport planner ---------- */
+const NET = D.net;
+const HUB = Object.fromEntries(NET.hubs.map(h => [h[0], {id:h[0], n:h[1], lat:h[2], lng:h[3], g:h[4], island:h[5]}]));
+const MODE_IC = {"Train":"train","Bus":"bus","Ferry":"ship","Flight":"plane","Minivan":"bus","Bus + ferry":"ship","Taxi":"car","Local ride":"car"};
+const MODE_COL = {"Train":"--gaff","Bus":"--munch","Minivan":"--munch","Ferry":"--move","Bus + ferry":"--move","Flight":"--other","Taxi":"--cool","Local ride":"--cool"};
+const FLIGHT_EXTRA = [2, 3], CHANGE_EXTRA = [0.5, 1];
+const roadKm = (a, b) => dist(a, b) * 1.35;
+function meterFare(km){
+  const m = NET.taxi.meter; let f = m.flag, d = Math.max(0, km - 1);
+  for (const [len, r] of m.bands){ const x = len == null ? d : Math.min(d, len); f += x * r; d -= x; if (d <= 0) break; }
+  return f;
+}
+const LEGS = (() => {
+  const opts = NET.edges.map(e => ({...e}));
+  const hubs = Object.values(HUB);
+  for (let i = 0; i < hubs.length; i++) for (let j = i + 1; j < hubs.length; j++){
+    const a = hubs[i], b = hubs[j];
+    if (a.island || b.island) continue;
+    if (opts.some(o => (o.a === a.id && o.b === b.id) || (o.a === b.id && o.b === a.id))) continue;
+    const km = roadKm(a, b); if (km > 60) continue;
+    opts.push({a:a.id, b:b.id, mode:"Taxi", op:"Taxi, Grab or Bolt", dur:[km / 45, km / 30], p:null, cur:"THB", da:"hotel", db:"hotel",
+      notes:[`About ${Math.round(km)} km by road`, "Check Grab or Bolt for the price"], src:[], verified:false});
+  }
+  return opts;
+})();
+const ADJ = {};
+LEGS.forEach(o => { (ADJ[o.a] = ADJ[o.a] || []).push({o, to:o.b}); (ADJ[o.b] = ADJ[o.b] || []).push({o, to:o.a}); });
+const isAir = h => h === "bkkair" || h === "dmk";
+const GO12 = D.net.go12 || {};
+const go12 = (a, b) => GO12[a] && GO12[b] ? `https://12go.asia/en/travel/${GO12[a]}/${GO12[b]}` : null;
+const ISLAND_R = {samui:14, phangan:10, tao:5, phiphi:5, kohchang:14, lipe:3, railay:2};
+let NODE = HUB;
+const hubNode = id => ({id, n:HUB[id].n, lat:HUB[id].lat, lng:HUB[id].lng});
+// Link a searched place (not one of the saved hubs) to the network with a local ride to the nearest hubs
+function connectors(node, key){
+  const legs = [];
+  const add = (h, label) => {
+    const km = roadKm(node, HUB[h]);
+    const inBkk = dist(node, HUB.bkk) < 40 && dist(HUB[h], HUB.bkk) < 40;
+    const m = inBkk ? meterFare(km) : null;
+    legs.push({a:key, b:h, mode: inBkk ? "Taxi" : "Local ride", op: inBkk ? "Taxi, Grab or Bolt" : (label || "Taxi, Grab, songthaew or longtail boat, depending on the place"), dur:[Math.max(.15, km / 45), Math.max(.25, km / 28)],
+      p: m ? [Math.round(m * 1.05), Math.round(m * 1.4)] : null, cur:"THB", da:null, db:null,
+      notes:[`About ${Math.round(km)} km by road`, inBkk ? "Estimated from Bangkok’s taxi meter rates" : "Check Grab or Bolt for the price, or ask locally for a bus or songthaew"], src:[], verified:false});
+  };
+  for (const [h, r] of Object.entries(ISLAND_R)) if (dist(node, HUB[h]) <= r){ add(h, "Taxi, songthaew or scooter taxi"); return legs; }
+  const ranked = Object.values(HUB).filter(h => !h.island && !isAir(h.id)).map(h => ({h:h.id, km:roadKm(node, h)})).sort((x, y) => x.km - y.km);
+  const close = ranked.filter(x => x.km <= 170).slice(0, 3);
+  if (close.length){ close.forEach(x => add(x.h)); return legs; }
+  // further from the saved hubs but still in Thailand: link the two nearest by bus or taxi, flagged as an estimate
+  if (countryAt(node.lat, node.lng) === "TH") ranked.slice(0, 2).forEach(x => legs.push({a:key, b:x.h, mode:"Bus", op:"Bus, minivan or taxi (check live)", dur:[x.km / 65, x.km / 45], p:null, cur:"THB", da:null, db:null,
+    notes:[`About ${Math.round(x.km)} km by road`, "This stretch isn’t in the saved network yet, so the time is a rough estimate"], src:[], verified:false}));
+  return legs;
+}
+function hubPaths(adj, from, to, maxLegs){
+  const out = [];
+  (function walk(at, seen, path){
+    if (at === to && path.length){ out.push(path.slice()); return; }
+    if (path.length === maxLegs) return;
+    for (const {o, to:nx} of (adj[at] || [])){
+      if (seen.has(nx) || (isAir(nx) && nx !== to)) continue;
+      seen.add(nx); path.push({o, from:at, to:nx}); walk(nx, seen, path); path.pop(); seen.delete(nx);
+    }
+  })(from, new Set([from]), []);
+  // a flight "from Bangkok" already leaves from an airport, so don't pair it with a leg to or from that airport
+  return out.filter(legs => !legs.some((L, k) => {
+    const nx = legs[k + 1];
+    return nx && ((isAir(L.from) && L.to === "bkk" && nx.o.mode === "Flight") || (L.o.mode === "Flight" && L.to === "bkk" && isAir(nx.to)));
+  }));
+}
+function planTrips(fromN, toN){
+  if (!fromN || !toN) return [];
+  const fk = fromN.id || "@from", tk = toN.id || "@to";
+  if (fk === tk || (!fromN.id && !toN.id && dist(fromN, toN) < .3)) return [];
+  NODE = Object.assign({}, HUB);
+  const adj = {}; Object.keys(ADJ).forEach(k => adj[k] = ADJ[k].slice());
+  const link = o => { (adj[o.a] = adj[o.a] || []).push({o, to:o.b}); (adj[o.b] = adj[o.b] || []).push({o, to:o.a}); };
+  let extra = 0;
+  [[fromN, "@from"], [toN, "@to"]].forEach(([n, key]) => { if (n.id) return; NODE[key] = {id:key, n:n.n, lat:n.lat, lng:n.lng}; connectors(n, key).forEach(link); extra++; });
+  if (!fromN.id && !toN.id && roadKm(fromN, toN) <= 60){ const km = roadKm(fromN, toN); link({a:"@from", b:"@to", mode:"Taxi", op:"Taxi, Grab or Bolt", dur:[km / 45, km / 28], p:null, cur:"THB", da:null, db:null, notes:[`About ${Math.round(km)} km by road`], src:[], verified:false}); }
+  let trips = hubPaths(adj, fk, tk, 3 + extra).map(legs => {
+    let dmin = 0, dmax = 0, pmin = 0, pmax = 0, unpriced = 0, unverified = 0;
+    legs.forEach((L, k) => {
+      const o = L.o, fl = o.mode === "Flight";
+      dmin += o.dur[0] + (fl ? FLIGHT_EXTRA[0] : 0) + (k ? CHANGE_EXTRA[0] : 0);
+      dmax += o.dur[1] + (fl ? FLIGHT_EXTRA[1] : 0) + (k ? CHANGE_EXTRA[1] : 0);
+      if (o.p){ pmin += toGBP(o.p[0], o.cur); pmax += toGBP(o.p[o.p.length - 1], o.cur); } else unpriced++;
+      if (!o.verified) unverified++;
+    });
+    return {legs, dmin, dmax, mid:(dmin + dmax) / 2, pmin, pmax, unpriced, unverified};
+  });
+  if (!trips.length) return [];
+  // local rides at either end are always unpriced outside Bangkok, so judge prices on the main legs
+  const core = t => t.unpriced - t.legs.filter(L => L.from[0] === "@" || L.to[0] === "@").filter(L => !L.o.p).length;
+  const best = Math.min(...trips.map(t => t.mid));
+  trips = trips.filter(t => t.mid <= best * 2.5 + 2);
+  const priced = trips.filter(t => !core(t));
+  const keepUnpriced = new Set(trips.filter(t => core(t) && t.mid <= best * 1.6 + 1).sort((a, b) => (core(a) - core(b)) || (a.mid - b.mid)).slice(0, 3));
+  trips = trips.filter(t => core(t) ? keepUnpriced.has(t)
+    : !priced.some(u => u !== t && u.mid <= t.mid && u.pmin <= t.pmin && (u.mid < t.mid || u.pmin < t.pmin)));
+  const fastest = trips.reduce((a, b) => a.mid <= b.mid ? a : b);
+  const cheapPool = trips.filter(t => !core(t));
+  const cheapest = cheapPool.length ? cheapPool.reduce((a, b) => a.pmin <= b.pmin ? a : b) : null;
+  trips.forEach(t => { t.fastest = t === fastest; t.cheapest = t === cheapest; });
+  trips.sort(ui.tp.sort === "cheap"
+    ? (a, b) => (core(a) - core(b)) || (a.pmin - b.pmin) || (a.mid - b.mid)
+    : (a, b) => (a.mid - b.mid) || (a.pmin - b.pmin));
+  return trips.slice(0, 8);
+}
+function fh(h){
+  if (h < 1) return `${Math.max(5, Math.round(h * 60 / 5) * 5)} min`;
+  const r = Math.round(h * 2) / 2;
+  return `${Math.floor(r)}${r % 1 ? "½" : ""} h`;
+}
+const fRange = (a, b) => fh(a) === fh(b) ? fh(a) : (b < 1 ? `${fh(a).replace(" min", "")}–${fh(b)}` : a < 1 ? `${fh(a)}–${fh(b)}` : `${fh(a).replace(" h", "")}–${fh(b)}`);
+const thb = gbp => money(niceRound(gbp * rate("THB"), "THB"), "THB");
+function stationOf(key){ const s = key && NET.stations[key]; return s ? {n:s[0], lat:s[1], lng:s[2]} : null; }
+function getThere(stn){
+  if (!userLoc || !stn || stn.lat == null) return "";
+  const km = roadKm(userLoc, stn);
+  if (km > 45) return "";
+  if (km < 0.6) return `<div class="getthere">${esc(stn.n)} is a short walk from you.</div>`;
+  const inBkk = dist(userLoc, HUB.bkk) < 40;
+  if (inBkk){
+    const m = meterFare(km);
+    return `<div class="getthere">${esc(stn.n)} is about ${km.toFixed(1)} km from you. Taxi about ${money(Math.round(m * 1.05), "THB")}–${fmtNum(Math.round(m * 1.4))} on the meter, Grab or Bolt about ${money(Math.round(Math.max(100, m * 1.2)), "THB")}–${fmtNum(Math.round(Math.max(150, m * 1.8)))}. Estimates from Bangkok’s official meter rates.</div>`;
+  }
+  return `<div class="getthere">${esc(stn.n)} is about ${km.toFixed(1)} km from you. Outside Bangkok taxis rarely use meters, so check Grab or Bolt for the price.</div>`;
+}
+function tripCard(t, idx){
+  const allUnpriced = t.unpriced === t.legs.length;
+  const price = allUnpriced ? `<small>Price: check live</small>` : `${thb(t.pmin)}${t.pmax - t.pmin > 0.3 ? "–" + fmtNum(niceRound(t.pmax * rate("THB"), "THB")) : ""}<small>£${fmtNum(t.pmin)}${t.pmax - t.pmin > 0.3 ? "–" + fmtNum(t.pmax) : ""}${t.unpriced ? ", plus a leg without a saved price" : ""}</small>`;
+  const legs = t.legs.map(L => {
+    const o = L.o, fromStn = stationOf(L.from === o.a ? o.da : o.db);
+    const lp = o.p ? localRange(o.p, o.cur, "THB") : "price not saved";
+    return `<div class="leg"><span class="li" style="color:${cssv(MODE_COL[o.mode] || "--move")}">${icon(MODE_IC[o.mode] || "bus")}</span><div>
+      <b>${esc(NODE[L.from].n)} → ${esc(NODE[L.to].n)}</b>
+      <div class="m">${esc(o.mode)}${o.op ? ", " + esc(o.op) : ""}</div>
+      <div class="m">${fRange(o.dur[0], o.dur[1])}${o.mode === "Flight" ? " flying, plus airport time" : ""}, ${esc(lp)}${fromStn && fromStn.lat != null ? `, from ${esc(fromStn.n)}` : ""}${o.verified ? "" : ' <span class="tag warn">Estimate</span>'}</div>
+      ${go12(L.from, L.to) && o.mode !== "Taxi" && o.mode !== "Local ride" ? `<a class="btn small" style="margin-top:6px" href="${go12(L.from, L.to)}" target="_blank" rel="noopener">Book this leg on 12Go ${icon("ext","i s")}</a>` : ""}
+    </div></div>`;
+  }).join("");
+  const first = t.legs[0], firstStn = stationOf(first.from === first.o.a ? first.o.da : first.o.db);
+  const a = NODE[t.legs[0].from].n, b = NODE[t.legs[t.legs.length - 1].to].n;
+  const notes = t.legs.flatMap(L => L.o.notes.map(n => `${NODE[L.from].n} → ${NODE[L.to].n}: ${n}`));
+  const srcs = t.legs.flatMap(L => L.o.src || []);
+  return `<div class="trip" data-trip="${idx}" aria-pressed="${ui.tp.sel === idx}" role="button" tabindex="0">
+    <div>${t.fastest ? '<span class="badge">Fastest</span>' : ""}${t.cheapest ? '<span class="badge cheap">Cheapest</span>' : ""}</div>
+    <div class="sum" style="margin-top:6px"><div><div class="big">${fRange(t.dmin, t.dmax)}</div><div class="m note">${t.legs.length === 1 ? "Direct" : `${t.legs.length} legs, ${t.legs.length - 1} change${t.legs.length > 2 ? "s" : ""}`}${t.legs.some(L => L.o.mode === "Flight") ? ", includes airport time" : ""}</div></div>
+      <div class="price">${price}</div></div>
+    <div style="margin-top:8px">${legs}</div>
+    ${getThere(firstStn)}
+    <div class="row" style="margin-top:12px">${t.legs.length > 1 && go12(t.legs[0].from, t.legs[t.legs.length - 1].to) ? ext(go12(t.legs[0].from, t.legs[t.legs.length - 1].to), "Whole trip on 12Go " + icon("ext","i s")) : ""}${ext(`https://www.rome2rio.com/s/${enc(a)}/${enc(b)}`, "Rome2Rio " + icon("ext","i s"))}</div>
+    <details class="more"><summary>Details and sources</summary>
+      ${notes.length ? `<ul class="known">${notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
+      <p class="note">${srcs.length ? "Checked " + esc(D.checked) + ": " + srcs.map(s => `<a href="${esc(s[1])}" target="_blank" rel="noopener">${esc(s[0])}</a>`).join(", ") : "Estimate, not checked."}${t.legs.some(L => L.o.mode === "Flight") ? " Flight times include about 2–3 hours for getting to, through and out of the airports." : ""}</p>
+    </details>
+  </div>`;
+}
+let tmap = null, tripLayer = null, hubLayer = null;
+function routeCard(r){
+  const pr = routeLocal(r);
+  return `<div class="block"><div class="kind" style="--c:${cssv("--move")}">${icon(MODE_IC[r.mode] || "bus","i s")}${esc(r.mode)}</div>
+    <h2 style="margin-top:4px">${esc(r.a)} → ${esc(r.b)}</h2>
+    <div class="meta">${r.dur ? `<span>${esc(r.dur)}</span>` : ""}${pr ? `<span>${esc(pr)} (${esc(gbpRange(r.p, r.cur))})</span>` : "<span>Price: check live</span>"}${r.op ? `<span>${esc(r.op)}</span>` : ""}</div>
+    ${r.notes.length ? `<ul class="known">${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
+    <div class="row" style="margin-top:10px">${ext(r.live || L_google(`12Go ${r.a} to ${r.b}`), "Check live on 12Go " + icon("ext","i s"))}</div></div>`;
+}
+// "From" defaults to where you are: snap to a hub if you're in one of its cities, otherwise your exact spot
+function hereNode(){
+  if (!userLoc) return hubNode("bkk");
+  let best = null, bk = 1e9;
+  Object.values(HUB).filter(h => !isAir(h.id)).forEach(h => { const k = dist(userLoc, h); if (k < bk){ bk = k; best = h; } });
+  if (bk <= (best.island ? (ISLAND_R[best.id] || 8) : 25)) return Object.assign(hubNode(best.id), {here:true});
+  return {n:"Your location", lat:userLoc.lat, lng:userLoc.lng, here:true};
+}
+const fromNode = () => ui.tp.from || hereNode();
+const nodeLabel = n => n ? (n.here ? (n.id ? `${n.n} (you’re here)` : "Your location") : n.n) : "";
+function transportPage(){
+  const fN = fromNode(), tN = ui.tp.to;
+  const trips = planTrips(fN, tN);
+  if (ui.tp.sel >= trips.length) ui.tp.sel = 0;
+  ui._trips = trips;
+  let html = `<div class="page"><h1>Transport</h1><p class="sub">Search anywhere, see every way to get there</p>
+    <div class="block plan">
+      <div class="pair">
+        <label class="field sfield">From<input id="tp-from" type="search" autocomplete="off" enterkeyhint="search" value="${esc(nodeLabel(fN))}" placeholder="Search a place"><div class="sugs" id="sug-from" hidden></div></label>
+        <button class="icon-btn" id="tp-swap" type="button" aria-label="Swap start and destination" style="margin-bottom:2px">${icon("swap")}</button>
+        <label class="field sfield">To<input id="tp-to" type="search" autocomplete="off" enterkeyhint="search" value="${esc(nodeLabel(tN))}" placeholder="Where to?"><div class="sugs" id="sug-to" hidden></div></label>
+      </div>
+      <div class="seg" role="group" aria-label="Sort journeys"><button data-tsort="fast" aria-pressed="${ui.tp.sort === "fast"}">Fastest</button><button data-tsort="cheap" aria-pressed="${ui.tp.sort === "cheap"}">Cheapest</button></div>
+    </div>
+    <div id="tpMap" class="tmap" role="application" aria-label="Transport map"></div>
+    <p class="note" style="margin:0 0 14px">Tap a dot on the map to head there, or search any town, beach, hostel or sight.</p>`;
+  if (!tN) html += emptyBlock("Where are you heading?", `<div>Search for any place, or tap a dot on the map. You’ll see every way to get there: trains, buses, minivans, ferries, flights and taxis, with times, prices and where each one leaves from.</div>`);
+  else if (!trips.length){
+    const far = !tN.id && !connectors(tN, "@x").length;
+    html += emptyBlock(far ? "That’s outside the saved Thailand network" : "No saved connections yet", `<div>${far ? "The planner covers Thailand so far. Check Rome2Rio for this one, or the saved routes for other countries below." : "This trip isn’t in the saved network yet."}</div>`,
+      ext(`https://www.rome2rio.com/s/${enc(fN.n)}/${enc(tN.n)}`, "Search Rome2Rio " + icon("ext","i s")));
+  }
+  else html += `<p class="note" style="margin:0 0 8px">${trips.length} way${trips.length === 1 ? "" : "s"} to get there. Times and prices are a saved baseline, so confirm live before you pay.</p>` + trips.map(tripCard).join("");
+  html += `<div class="block" style="margin-top:18px"><h2>Getting a ride in town</h2><p class="note" style="margin:2px 0 10px">${esc(D.countries[S.country].name)}, general tips (not price-checked)</p><p style="margin:0">${esc(D.rides[S.country])}</p></div>`;
+  const other = D.routes.filter(r => !r.cc.every(c => c === "TH"));
+  html += `<details class="more" style="margin-top:6px"><summary>Saved routes in the other countries (${other.length})</summary><div style="margin-top:10px">${other.map(routeCard).join("")}</div></details></div>`;
+  return html;
+}
+function drawTripOnMap(){
+  if (!tmap) return;
+  tripLayer.clearLayers();
+  const t = ui._trips && ui._trips[ui.tp.sel];
+  const fN = fromNode(), tN = ui.tp.to;
+  [[fN, "--cool"], [tN, "--accent"]].forEach(([n, c]) => { if (n && !n.id) L.circleMarker([n.lat, n.lng], {radius:8, color:cssv("--sea"), weight:2, fillColor:cssv(c), fillOpacity:1, interactive:false}).addTo(tripLayer); });
+  if (!t){ tmap.fitBounds(Object.values(HUB).map(h => [h.lat, h.lng]).concat(tN ? [[tN.lat, tN.lng]] : []), {padding:[18, 18]}); return; }
+  const pts = [];
+  t.legs.forEach(lg => {
+    const a = NODE[lg.from], b = NODE[lg.to]; pts.push([a.lat, a.lng], [b.lat, b.lng]);
+    L.polyline([[a.lat, a.lng], [b.lat, b.lng]], {color:cssv(MODE_COL[lg.o.mode] || "--move"), weight:4, opacity:.95, dashArray: lg.o.mode === "Flight" ? "3 9" : null, interactive:false}).addTo(tripLayer);
+  });
+  tmap.fitBounds(pts, {padding:[30, 30], maxZoom:11});
+}
+function initTransportMap(){
+  if (typeof L === "undefined") return;
+  const slot = $("#tpMap"); if (!slot) return;
+  if (tmap){ slot.replaceWith(tmap.getContainer()); setTimeout(() => tmap && tmap.invalidateSize(), 0); }
+  else {
+    tmap = L.map(slot, {zoomControl:false, attributionControl:false, preferCanvas:true, minZoom:4, maxZoom:14, zoomSnap:.5});
+    tmap.setView([12.5, 100.4], 5);
+    const feats = [];
+    GEO.forEach(c => c.p.forEach(r => feats.push({type:"Feature", properties:{cc:c.cc}, geometry:{type:"Polygon", coordinates:[r]}})));
+    L.geoJSON({type:"FeatureCollection", features:feats}, {interactive:false, style: f => ({color:cssv("--border-land"), weight:1, fillColor: f.properties.cc ? cssv("--land-trip") : cssv("--land"), fillOpacity:1})}).addTo(tmap);
+    hubLayer = L.layerGroup().addTo(tmap);
+    tripLayer = L.layerGroup().addTo(tmap);
+  }
+  hubLayer.clearLayers();
+  const fN = fromNode(), tN = ui.tp.to;
+  Object.values(HUB).forEach(h => {
+    const isF = fN && fN.id === h.id, isT = tN && tN.id === h.id;
+    const m = L.circleMarker([h.lat, h.lng], {radius: isF || isT ? 9 : 6.5, color:cssv("--sea"), weight:2, fillColor: isF ? cssv("--cool") : isT ? cssv("--accent") : cssv("--move"), fillOpacity:1, bubblingMouseEvents:false});
+    m.bindTooltip(esc(h.n), {direction:"top", offset:[0, -6]});
+    m.on("click", () => { if (!isF){ ui.tp.to = hubNode(h.id); ui.tp.sel = 0; renderPage(); } });
+    m.addTo(hubLayer);
+  });
+  if (userLoc) L.circleMarker([userLoc.lat, userLoc.lng], {radius:7, color:"#ffffff", weight:3, fillColor:cssv("--move"), fillOpacity:1, interactive:false}).addTo(hubLayer);
+  drawTripOnMap();
+}
+/* place search: saved places instantly; with a Google key, live suggestions; without one, an OpenStreetMap search on request */
+function localMatches(q){
+  q = q.trim().toLowerCase(); if (!q) return [];
+  const seen = new Set(), out = [];
+  const push = (n, sub, node) => { const k = n.toLowerCase(); if (seen.has(k)) return; seen.add(k); out.push({n, sub, node}); };
+  Object.values(HUB).filter(h => h.n.toLowerCase().includes(q)).forEach(h => push(h.n, "Transport hub", hubNode(h.id)));
+  D.cities.filter(c => c[0].toLowerCase().includes(q)).forEach(c => push(c[0], "Town", {n:c[0], lat:c[1], lng:c[2]}));
+  D.places.filter(p => p.n.toLowerCase().includes(q) || p.city.toLowerCase().startsWith(q)).slice(0, 8).forEach(p => push(p.n, `${CAT[p.c].one}, ${p.city}`, {n:p.n, lat:p.lat, lng:p.lng}));
+  return out.slice(0, 6);
+}
+let gSession = null;
+async function googleSuggest(q){
+  const maps = await loadGoogle(); if (!maps) return null;
+  try {
+    const { AutocompleteSuggestion, AutocompleteSessionToken } = await maps.importLibrary("places");
+    if (!gSession) gSession = new AutocompleteSessionToken();
+    const req = {input:q, sessionToken:gSession, includedRegionCodes:["th","kh","vn","la","my","sg","id"]};
+    if (userLoc) req.origin = {lat:userLoc.lat, lng:userLoc.lng};
+    const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions(req);
+    return (suggestions || []).filter(s => s.placePrediction).slice(0, 5).map(s => {
+      const p = s.placePrediction, txt = x => x ? String(x.text != null ? x.text : x) : "";
+      return {n: txt(p.mainText) || txt(p.text), sub: txt(p.secondaryText), resolve: async () => {
+        const pl = p.toPlace(); await pl.fetchFields({fields:["location"]}); gSession = null;
+        return {lat: pl.location.lat(), lng: pl.location.lng()};
+      }};
+    });
+  } catch(e){ return null; }
+}
+async function osmSearch(q){
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=en&countrycodes=th,kh,vn,la,my,sg,id&q=${enc(q)}`);
+    const j = await r.json();
+    return j.map(x => ({n: x.name || x.display_name.split(",")[0], sub: x.display_name.split(",").slice(1, 3).join(",").trim(), node:{n: x.name || x.display_name.split(",")[0], lat:+x.lat, lng:+x.lon}}));
+  } catch(e){ return null; }
+}
+function bindSearch(which){
+  const inp = $(`#tp-${which}`), box = $(`#sug-${which}`);
+  let timer = null, online = [], lastQ = "", searching = false;
+  const choose = node => { ui.tp[which] = node; ui.tp.sel = 0; renderPage(); };
+  const paint = () => {
+    const q = inp.value.trim(); const local = localMatches(q);
+    let h = "";
+    if (which === "from") h += `<button type="button" data-here>${icon("locate","i s")} Where I am<small>${esc(nodeLabel(hereNode()))}</small></button>`;
+    h += local.map((s, i) => `<button type="button" data-l="${i}">${esc(s.n)}<small>${esc(s.sub)}</small></button>`).join("");
+    const localNames = new Set(local.map(s => s.n.toLowerCase()));
+    online = online.filter(s => !localNames.has(s.n.toLowerCase()));
+    if (online.length) h += `<div class="hd">More places</div>` + online.map((s, i) => `<button type="button" data-o="${i}">${esc(s.n)}<small>${esc(s.sub)}</small></button>`).join("");
+    else if (q.length >= 3 && !googleKey()) h += `<button type="button" data-osm>${icon("search","i s")} Search the map for “${esc(q)}”<small>OpenStreetMap, needs signal</small></button>`;
+    else if (q.length >= 3 && !local.length) h += `<div class="hd">${searching ? "Searching…" : "No matches. Try another spelling."}</div>`;
+    box.innerHTML = h; box.hidden = !h;
+    box.querySelectorAll("[data-l]").forEach(b => b.onmousedown = e => { e.preventDefault(); choose(local[+b.dataset.l].node); });
+    box.querySelectorAll("[data-o]").forEach(b => b.onmousedown = async e => { e.preventDefault(); const s = online[+b.dataset.o]; if (s.node) return choose(s.node); try { const loc = await s.resolve(); choose({n:s.n, lat:loc.lat, lng:loc.lng}); } catch(err){ toast("Couldn’t get that place. Try again with signal."); } });
+    const hb = box.querySelector("[data-here]"); if (hb) hb.onmousedown = e => { e.preventDefault(); choose(null); };
+    const ob = box.querySelector("[data-osm]"); if (ob) ob.onmousedown = async e => { e.preventDefault(); ob.innerHTML = "Searching…"; const r = await osmSearch(q); online = r || []; if (!r) toast("Search needs signal"); else if (!r.length) toast("Nothing found. Try another spelling."); paint(); };
+  };
+  inp.onfocus = () => { inp.select(); paint(); };
+  inp.oninput = () => {
+    online = []; paint();
+    clearTimeout(timer);
+    const q = inp.value.trim(); lastQ = q;
+    if (q.length >= 3 && googleKey()){ searching = true; timer = setTimeout(async () => { const r = await googleSuggest(q); if (q !== lastQ) return; searching = false; online = r || []; paint(); }, 350); }
+  };
+  inp.onkeydown = e => { if (e.key === "Enter"){ const first = box.querySelector("button"); if (first) first.dispatchEvent(new MouseEvent("mousedown")); } if (e.key === "Escape"){ box.hidden = true; inp.blur(); } };
+  inp.onblur = () => setTimeout(() => { box.hidden = true; inp.value = nodeLabel(which === "from" ? fromNode() : ui.tp.to); }, 150);
+}
+function bindTransport(){
+  const root = $("#pageview");
+  bindSearch("from"); bindSearch("to");
+  $("#tp-swap").onclick = () => { if (!ui.tp.to) return; const f = fromNode(); ui.tp.from = ui.tp.to; ui.tp.to = f; ui.tp.sel = 0; renderPage(); };
+  root.querySelectorAll("[data-tsort]").forEach(b => b.onclick = () => { ui.tp.sort = b.dataset.tsort; ui.tp.sel = 0; renderPage(); });
+  root.querySelectorAll("[data-trip]").forEach(c => {
+    const pick = e => { if (e.target.closest("a, summary, details")) return; ui.tp.sel = +c.dataset.trip; root.querySelectorAll("[data-trip]").forEach(x => x.setAttribute("aria-pressed", x === c)); drawTripOnMap(); $("#tpMap").scrollIntoView({behavior: reduceMotion ? "auto" : "smooth", block:"center"}); };
+    c.onclick = pick; c.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); pick(e); } };
+  });
+  initTransportMap();
+}
+
+/* ---------- translator ---------- */
+const TR_LANGS = [["th", "Thai"], ["km", "Khmer (Cambodia)"], ["vi", "Vietnamese"], ["lo", "Lao"], ["ms", "Malay"], ["id", "Indonesian"], ["zh-CN", "Chinese (Mandarin)"]];
+const TR_VOICE = {th:"th-TH", km:"km-KH", vi:"vi-VN", lo:"lo-LA", ms:"ms-MY", id:"id-ID", "zh-CN":"zh-CN"};
+const trState = {text:"", lang:null, out:"", outFor:"", status:""};
+const trLang = () => trState.lang || (S.country === "SG" ? "zh-CN" : (TR_LANGS.find(l => l[0] === D.countries[S.country].lang) || TR_LANGS[0])[0]);
+let trCache = {}; try { trCache = JSON.parse(localStorage.getItem("tr-cache") || "{}"); } catch(e){}
+function paintTranslation(){
+  const el = $("#tr-out"); if (!el) return;
+  if (trState.status === "nokey"){ el.innerHTML = `<p class="note">Add your Google key in <a href="#setup">Settings</a> to translate here.</p>`; return; }
+  if (trState.status === "error"){ el.innerHTML = `<p class="note">Couldn’t translate. Check your signal, and that Cloud Translation API is ticked on your Google key.</p>`; return; }
+  if (!trState.out){ el.innerHTML = trState.status === "busy" ? `<p class="note">Translating…</p>` : ""; return; }
+  el.innerHTML = `<div class="tr-res"><div class="tr-text" lang="${esc(trLang())}">${esc(trState.out)}</div><button class="icon-btn" id="tr-say" type="button" aria-label="Read it out loud">${icon("speaker")}</button></div>`;
+  $("#tr-say").onclick = () => speak(trState.out, trLang());
+}
+async function doTranslate(){
+  const text = trState.text.trim(), lang = trLang();
+  if (!text){ trState.out = ""; trState.status = ""; paintTranslation(); return; }
+  if (!googleKey()){ trState.status = "nokey"; paintTranslation(); return; }
+  const k = lang + "|" + text;
+  if (trCache[k]){ trState.out = trCache[k]; trState.status = ""; paintTranslation(); return; }
+  trState.status = "busy"; if (trState.outFor !== k) trState.out = ""; paintTranslation();
+  try {
+    const r = await fetch(`https://translation.googleapis.com/language/translate/v2?key=${enc(googleKey())}`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({q:text, source:"en", target:lang, format:"text"})});
+    const j = await r.json();
+    if (!r.ok || !j.data) throw new Error((j.error && j.error.message) || "failed");
+    if (trState.text.trim() !== text || trLang() !== lang) return;
+    trState.out = j.data.translations[0].translatedText; trState.outFor = k; trState.status = "";
+    trCache[k] = trState.out;
+    const keys = Object.keys(trCache); if (keys.length > 300) delete trCache[keys[0]];
+    try { localStorage.setItem("tr-cache", JSON.stringify(trCache)); } catch(e){}
+  } catch(e){ trState.status = "error"; }
+  paintTranslation();
+}
+function speak(text, lang){
+  if (!("speechSynthesis" in window)){ toast("This phone can’t read text out"); return; }
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = TR_VOICE[lang] || lang; u.rate = .85;
+  const voices = speechSynthesis.getVoices();
+  const v = voices.find(x => x.lang.replace("_", "-").toLowerCase() === u.lang.toLowerCase()) || voices.find(x => x.lang.toLowerCase().startsWith(u.lang.slice(0, 2).toLowerCase()));
+  if (v) u.voice = v; else if (voices.length) toast("No voice for this language yet. On iPhone add one in Settings > Accessibility > Spoken Content > Voices.");
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+
+/* ---------- tools page ---------- */
+let conv = {cur:null, gbp:"10", loc:""};
+function curOptions(sel){
+  const c = D.countries[S.country];
+  const order = [c.cur, ...c.alt, ...Object.keys(D.rates).filter(k => k !== "GBP" && k !== c.cur && !c.alt.includes(k))];
+  return order.map(k => `<option value="${k}" ${k === sel ? "selected" : ""}>${k} (${CUR_NAME[k]})</option>`).join("");
+}
+function toolsPage(){
+  const c = D.countries[S.country];
+  if (!conv.cur || conv.lastCountry !== S.country){ conv.cur = c.cur; conv.lastCountry = S.country; conv.loc = ""; }
+  const r = rate(conv.cur);
+  const gbpVal = conv.gbp !== "" ? +conv.gbp : null;
+  const locVal = conv.loc !== "" ? conv.loc : (gbpVal != null ? String(Math.round(gbpVal * r * 100) / 100) : "");
+  const quick = (NOTES[conv.cur] || []).map(n => `<div><span>${money(n, conv.cur)}</span><b>£${fmtNum(toGBP(n, conv.cur))}</b></div>`).join("");
+  return `<div class="page"><h1>Tools</h1><p class="sub">Money and words for ${esc(c.name)}</p>
+  <section class="block" aria-labelledby="h-conv">
+    <h2 id="h-conv">Money converter</h2>
+    <p class="note">Set to ${esc(CUR_NAME[c.cur])} because you’re in ${esc(c.name)}. Works without signal.</p>
+    <div class="conv">
+      <label class="field">Pounds<input class="big-in" inputmode="decimal" id="cv-gbp" value="${esc(conv.gbp)}" aria-label="Amount in pounds"></label>
+      <span style="padding-bottom:14px;color:var(--muted)">${icon("swap")}</span>
+      <label class="field"><select id="cv-cur" aria-label="Local currency">${curOptions(conv.cur)}</select><input class="big-in" inputmode="decimal" id="cv-loc" value="${esc(locVal)}" aria-label="Amount in local currency"></label>
+    </div>
+    <p class="note" style="margin-top:10px">£1 = ${money(r, conv.cur)}, ${esc(S.rates[conv.cur] > 0 ? "your own rate" : D.rates[conv.cur].note)}. Change it in <a href="#setup">Settings</a>.</p>
+    <div class="quick" aria-label="Common notes in pounds">${quick}</div>
+  </section>
+  <section class="block" aria-labelledby="h-tr">
+    <h2 id="h-tr">Translator</h2>
+    <label class="field" style="margin-top:8px">What do you want to say?<textarea id="tr-text" placeholder="How much is a bed for two nights?">${esc(trState.text)}</textarea></label>
+    <label class="field" style="margin-top:8px">Language<select id="tr-lang">${TR_LANGS.map(([code, name]) => `<option value="${code}" ${code === trLang() ? "selected" : ""}>${esc(name)}</option>`).join("")}</select></label>
+    <div class="tr-out" id="tr-out" aria-live="polite"></div>
+  </section></div>`;
+}
+function bindTools(){
+  const gbpIn = $("#cv-gbp"), locIn = $("#cv-loc"), curSel = $("#cv-cur");
+  const num = s => { const v = parseFloat(String(s).replace(/,/g, "")); return isNaN(v) ? null : v; };
+  gbpIn.oninput = () => { conv.gbp = gbpIn.value; conv.loc = ""; const v = num(gbpIn.value); locIn.value = v == null ? "" : String(Math.round(v * rate(conv.cur) * 100) / 100); };
+  locIn.oninput = () => { conv.loc = locIn.value; const v = num(locIn.value); const g = v == null ? "" : String(Math.round(v / rate(conv.cur) * 100) / 100); gbpIn.value = g; conv.gbp = g; };
+  curSel.onchange = () => { conv.cur = curSel.value; conv.loc = ""; renderPage(); };
+  const tt = $("#tr-text"), tl = $("#tr-lang");
+  let timer = null;
+  const run = () => { clearTimeout(timer); trState.text = tt.value; trState.lang = tl.value; timer = setTimeout(doTranslate, 600); };
+  tt.oninput = run; tl.onchange = () => { trState.lang = tl.value; doTranslate(); };
+  paintTranslation();
+}
+
+/* ---------- settings page ---------- */
+function setupPage(){
+  const locLine = {ok:"Your location is on.", test:`Using a test location: ${S.testLoc}.`, asking:"Looking for you…", denied:"Location is blocked for this page. You can allow it in your browser settings, or pick a country below.", unavailable:"Your location isn’t available right now. Pick a country below.", outside:"Your location is outside the trip countries, so pick a country below.", idle:"Location hasn’t been checked yet."}[locStatus];
+  const domains = [...new Set([...D.places, ...D.routes, ...D.net.edges].flatMap(x => x.src || []).map(s => s[0]))].sort();
+  const gk = googleKey();
+  return `<div class="page"><h1>Settings</h1><p class="sub">Location, photos, exchange rates and data</p>
+  <section class="block"><h2>Test location</h2>
+    <p class="note">While you’re testing at home, the app can pretend you’re somewhere on the trip. Turn this off before you fly.</p>
+    <label class="field" style="margin-top:8px">Pretend I’m in<select id="testLoc"><option value="off" ${S.testLoc === "off" ? "selected" : ""}>Off (use my real location)</option>${TEST_SPOTS.map(c => `<option value="${esc(c[0])}" ${S.testLoc === c[0] ? "selected" : ""}>${esc(c[0])}${c[0] === "Bangkok" ? " (Siam, city centre)" : ""}</option>`).join("")}</select></label>
+  </section>
+  <section class="block"><h2>Country</h2>
+    <p class="note">Sets the money converter, translator and ride tips.</p>
+    <div class="seg" role="group" aria-label="How to choose the country" style="margin:6px 0 12px">
+      <button data-cmode="auto" aria-pressed="${S.countryMode === "auto"}">Use my location</button>
+      <button data-cmode="manual" aria-pressed="${S.countryMode === "manual"}">Pick it myself</button></div>
+    <p class="note">${esc(locLine)}</p>
+    <button class="btn small" id="relocate" type="button" style="margin-bottom:12px">${icon("locate","i s")}Check my location again</button>
+    <div class="cgrid">${Object.entries(D.countries).map(([k, x]) => `<button data-country="${k}" aria-pressed="${S.country === k}"><span class="f" aria-hidden="true">${x.flag}</span>${esc(x.name)}</button>`).join("")}</div>
+  </section>
+  <section class="block"><h2>Photos from Google</h2>
+    <p class="note">With a Google key, every place shows Google photos, its Google rating and its exact location, and the translator works. For the translator, tick Cloud Translation API on the key too.</p>
+    <p class="note" style="color:var(--ink)">${gk ? (S.gkey ? "Key saved on this phone." : "Key set in config.js, so everyone gets photos.") : "No key yet."}</p>
+    <label class="field">Google Maps API key<input type="text" id="gkey" autocomplete="off" spellcheck="false" placeholder="Paste your key here" value="${esc(S.gkey)}"></label>
+    <div class="row" style="margin-top:10px"><button class="btn small primary" id="gkeySave" type="button">Save key</button><button class="btn small" id="gkeyTest" type="button">Test it</button></div>
+    <p class="note" style="margin-top:10px">Photos only load with signal; Google doesn’t allow saving them for offline use. Inside Claude they’re blocked, so test on your own web address.</p>
+  </section>
+  <section class="block"><h2>Screen fit</h2>
+    <p class="note">On iPhone home-screen apps, iOS keeps a strip at the very bottom. This tries to draw the tab bar into it. If the tabs get cut off, switch it back off.</p>
+    <div class="seg" role="group" aria-label="Fill the bottom strip" style="margin-top:8px"><button data-fill="0" aria-pressed="${!S.fillBottom}">Standard</button><button data-fill="1" aria-pressed="${!!S.fillBottom}">Fill bottom strip (experimental)</button></div>
+  </section>
+  <section class="block"><h2>Exchange rates</h2>
+    <p class="note">How much £1 gets you. The app uses these offline, so update them when you have signal and spot a big change.</p>
+    ${Object.keys(D.rates).filter(k => k !== "GBP").map(k => `<div class="rate-row"><label for="rate-${k}">£1 in ${k}</label><input type="number" step="any" min="0" id="rate-${k}" data-rate="${k}" value="${rate(k)}"><small>${S.rates[k] > 0 ? `Your own rate. Built-in: ${fmtNum(D.rates[k].v)} (${esc(D.rates[k].note)})` : `Built-in, ${esc(D.rates[k].note)}`}</small></div>`).join("")}
+    <button class="btn small" id="resetRates" type="button" style="margin-top:10px">Reset to built-in rates</button>
+    <p class="note" style="margin-top:10px">Rates checked on: ${D.rateSources.map(s => `<a href="${esc(s[1])}" target="_blank" rel="noopener">${esc(s[0])}</a>`).join(", ")}.</p>
+  </section>
+  <section class="block"><h2>About the data</h2>
+    <p>Version ${VERSION}: ${D.places.filter(p => p.c === "gaff").length} gaffs, ${D.places.filter(p => p.c === "munch").length} food spots, ${D.places.filter(p => p.c === "cool").length} activities, and a Thailand transport network of ${D.net.hubs.length} places and ${D.net.edges.length} connections. Prices and ratings were checked in ${esc(D.checked)}.</p>
+    <p>Anything marked “not checked yet” uses typical prices, not ones we looked up. Taxi prices are estimates from Bangkok’s meter rates. Satellite and photos load on the app’s own web address, not inside Claude.</p>
+    <p class="note">Sources used: ${domains.map(esc).join(", ")}. Map outlines from Natural Earth.</p>
+  </section></div>`;
+}
+function bindSetup(){
+  const root = $("#pageview");
+  $("#testLoc").onchange = e => {
+    S.testLoc = e.target.value; persist();
+    if (S.testLoc === "off"){ userLoc = null; locStatus = "idle"; updateMe(); locate(true); }
+    else { applyTestLocation(); updateMe(); if (map) map.setView([userLoc.lat, userLoc.lng], 12); toast(`Test location: ${S.testLoc}`); }
+    rerender();
+  };
+  root.querySelectorAll("[data-fill]").forEach(b => b.onclick = () => { S.fillBottom = b.dataset.fill === "1"; persist(); fitStandalone(); renderPage(); toast(S.fillBottom ? "Trying the full-height layout" : "Back to the standard layout"); });
+  root.querySelectorAll("[data-cmode]").forEach(b => b.onclick = () => { S.countryMode = b.dataset.cmode; persist(); if (S.countryMode === "auto") locate(true); renderPage(); renderHeader(); });
+  root.querySelectorAll("[data-country]").forEach(b => b.onclick = () => setCountry(b.dataset.country, true));
+  $("#relocate").onclick = () => locate(true);
+  $("#gkeySave").onclick = () => { S.gkey = $("#gkey").value.trim(); persist(); gReady = null; toast(S.gkey ? "Key saved on this phone" : "Key removed"); renderPage(); };
+  $("#gkeyTest").onclick = async () => {
+    const k = $("#gkey").value.trim(); if (k && k !== S.gkey){ S.gkey = k; persist(); gReady = null; }
+    if (!googleKey()){ toast("Paste a key first"); return; }
+    toast("Testing…");
+    const pl = await googlePlace(D.places.find(p => p.id === "c-grandpalace"));
+    toast(pl && pl.photos && pl.photos.length ? "Working: Google found the Grand Palace with photos" : "Didn’t work here. Check the key and its website restriction, and test on your own web address.");
+  };
+  root.querySelectorAll("[data-rate]").forEach(inp => inp.onchange = () => { const v = parseFloat(inp.value); const k = inp.dataset.rate; if (v > 0 && v !== D.rates[k].v) S.rates[k] = v; else delete S.rates[k]; persist(); renderPage(); toast("Rate saved"); });
+  $("#resetRates").onclick = () => { const old = S.rates; S.rates = {}; persist(); renderPage(); toast("Rates reset", () => { S.rates = old; persist(); renderPage(); }); };
+}
+
+/* ---------- page dispatcher ---------- */
+function renderPage(){
+  const v = ui.view, root = $("#pageview");
+  if (tmap && tmap.getContainer().parentNode) tmap.getContainer().remove();
+  if (v === "gaffs"){ root.innerHTML = listPage("gaff"); bindList("gaff"); }
+  else if (v === "munch"){ root.innerHTML = listPage("munch"); bindList("munch"); }
+  else if (v === "activities"){ root.innerHTML = listPage("cool"); bindList("cool"); }
+  else if (v === "transport"){ root.innerHTML = transportPage(); bindTransport(); }
+  else if (v === "tools"){ root.innerHTML = toolsPage(); bindTools(); }
+  else if (v === "setup"){ root.innerHTML = setupPage(); bindSetup(); }
+  root.querySelectorAll("[data-open]").forEach(b => b.onclick = () => openDetail(b.dataset.open));
+}
+
+/* ---------- photos ---------- */
+let gReady = null;
+const realKey = k => { k = String(k || "").trim(); return /PASTE|YOUR-KEY/i.test(k) ? "" : k; };
+const googleKey = () => realKey(S.gkey) || realKey(window.SEA_GOOGLE_KEY) || realKey(GOOGLE_KEY_IN_FILE);
+function loadGoogle(){
+  if (gReady) return gReady;
+  const key = googleKey(); if (!key) return Promise.resolve(null);
+  gReady = new Promise(res => {
+    let done = false; const fin = v => { if (!done){ done = true; res(v); } };
+    window.__seaGoogleReady = () => fin(window.google && google.maps && google.maps.importLibrary ? google.maps : null);
+    const s = document.createElement("script");
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${enc(key)}&v=weekly&loading=async&callback=__seaGoogleReady`;
+    s.async = true; s.onerror = () => fin(null);
+    document.head.appendChild(s);
+    setTimeout(() => fin(null), 12000);
+  }).then(m => { if (!m) gReady = null; return m; });
+  return gReady;
+}
+const gPlaceCache = {};
+const G_FULL = ["location", "photos", "rating", "userRatingCount", "googleMapsURI"];
+async function googlePlace(it, fields = G_FULL){
+  if (!it) return null;
+  const maps = await loadGoogle(); if (!maps) return null;
+  let entry = gPlaceCache[it.id];
+  if (entry){ const need = fields.filter(f => !entry.has.has(f)); if (need.length){ try { await entry.place.fetchFields({fields:need}); need.forEach(f => entry.has.add(f)); } catch(e){} } return entry.place; }
+  try {
+    const { Place } = await maps.importLibrary("places");
+    let pid = null; try { pid = localStorage.getItem("gpid:" + it.id); } catch(e){}
+    if (!pid){
+      // ID-only search: free and unlimited on Google's pricing
+      const { places } = await Place.searchByText({ textQuery: `${it.n}, ${it.city}`, fields: ["id"], locationBias: {lat: it.lat, lng: it.lng}, maxResultCount: 1 });
+      if (!places || !places.length) return null;
+      pid = places[0].id; try { localStorage.setItem("gpid:" + it.id, pid); } catch(e){}
+    }
+    const place = new Place({ id: pid });
+    await place.fetchFields({ fields });
+    gPlaceCache[it.id] = {place, has:new Set(fields)};
+    return place;
+  } catch(e){ return null; }
+}
+function applyGoogleExtras(it, pl){
+  const el = $("#gRating");
+  if (el && pl.rating) el.innerHTML = `<div class="note">Google: ${starsHTML(pl.rating * 2)} ${pl.userRatingCount ? `${pl.userRatingCount.toLocaleString("en-GB")} reviews` : ""}${pl.googleMapsURI ? `, <a href="${esc(pl.googleMapsURI)}" target="_blank" rel="noopener">open</a>` : ""}</div>`;
+  if (pl.location){
+    const lat = typeof pl.location.lat === "function" ? pl.location.lat() : pl.location.lat;
+    const lng = typeof pl.location.lng === "function" ? pl.location.lng() : pl.location.lng;
+    if (isFinite(lat) && isFinite(lng) && dist({lat, lng}, it) < 30){
+      const moved = dist({lat, lng}, it) > 0.03;
+      it.lat = lat; it.lng = lng; it.ap = false;
+      try { localStorage.setItem("gloc:" + it.id, JSON.stringify([lat, lng, Date.now()])); } catch(e){}
+      if (moved && map){ drawPins(); highlightPin(it); }
+    }
+  }
+}
+function showGooglePhoto(box, it, pl){
+  const ph = pl.photos.slice(0, 5), n = ph.length;
+  const credit = k => { const a = (ph[k].authorAttributions || [])[0]; return `${a ? `Photo: <a href="${esc(a.uri || "#")}" target="_blank" rel="noopener">${esc(a.displayName || "Google user")}</a>, ` : ""}Google Maps`; };
+  box.classList.add("has-img");
+  box.innerHTML = `<div class="ptrack">${ph.map((p, k) => `<div class="pslide" data-k="${k}"></div>`).join("")}</div>
+    ${n > 1 ? `<span class="pcount">1 / ${n}</span><div class="pdots">${ph.map((p, k) => `<i class="${k ? "" : "on"}"></i>`).join("")}</div>` : ""}<div class="credit">${credit(0)}</div>`;
+  const track = box.querySelector(".ptrack");
+  const load = k => { const s = track.children[k]; if (!s || s.firstChild) return; const img = new Image(); img.alt = `${it.n}, photo ${k + 1} of ${n}`; img.src = ph[k].getURI({maxWidth: 900}); img.onerror = () => { s.textContent = ""; }; s.appendChild(img); };
+  load(0);
+  let cur = 0, tmr = null;
+  track.addEventListener("scroll", () => {
+    clearTimeout(tmr);
+    tmr = setTimeout(() => {
+      const k = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+      if (k === cur || k < 0 || k >= n) return;
+      cur = k; load(k);
+      const pc = box.querySelector(".pcount"); if (pc) pc.textContent = `${k + 1} / ${n}`;
+      box.querySelectorAll(".pdots i").forEach((d, j) => d.classList.toggle("on", j === k));
+      box.querySelector(".credit").innerHTML = credit(k);
+    }, 60);
+  }, {passive:true});
+}
+let photoObs = null;
+function watchCardPhotos(root){
+  if (photoObs) photoObs.disconnect();
+  const slots = root.querySelectorAll("[data-ph]"); if (!slots.length) return;
+  const fill = async slot => {
+    const it = D.places.find(p => p.id === slot.dataset.ph); if (!it || slot.dataset.done) return;
+    slot.dataset.done = "1";
+    if (googleKey()){
+      // only the "photos" field for cards: a cheaper lookup than the full one used when you open a place
+      const pl = await googlePlace(it, ["photos"]);
+      if (pl && pl.photos && pl.photos.length){ const img = new Image(); img.alt = ""; img.loading = "lazy"; img.src = pl.photos[0].getURI({maxWidth: 640}); img.onerror = () => slot.remove(); slot.appendChild(img); return; }
+    }
+    if (it.wp){ const ph = await loadPhoto(it); if (ph){ const img = new Image(); img.alt = ""; img.src = ph.src; img.onerror = () => slot.remove(); slot.appendChild(img); return; } }
+    slot.remove();
+  };
+  if (!("IntersectionObserver" in window)){ slots.forEach(fill); return; }
+  photoObs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting){ photoObs.unobserve(e.target); fill(e.target); } }), {root:$("#pageview"), rootMargin:"0px 0px 120px 0px", threshold:.25});
+  slots.forEach(s => photoObs.observe(s));
+}
+function wikiInto(box, it){
+  if (!it.wp){ box.innerHTML = photoFallback(it, "blocked"); return; }
+  loadPhoto(it).then(ph => {
+    if (!box.isConnected || box.dataset.id !== it.id) return;
+    if (!ph){ box.innerHTML = photoFallback(it, "blocked"); return; }
+    box.classList.add("has-img");
+    box.innerHTML = `<img alt="${esc(it.n)}" src="${esc(ph.src)}"><div class="credit"><a href="${esc(ph.page)}" target="_blank" rel="noopener">Photo via Wikipedia</a></div>`;
+    box.querySelector("img").onerror = () => { box.classList.remove("has-img"); box.innerHTML = photoFallback(it, "blocked"); };
+  });
+}
+(function applyCachedLocations(){
+  try { const now = Date.now(); D.places.forEach(p => { const v = localStorage.getItem("gloc:" + p.id); if (!v) return; const [lat, lng, ts] = JSON.parse(v); if (now - ts < 30 * 864e5){ p.lat = lat; p.lng = lng; p.ap = false; } }); } catch(e){}
+})();
+
+const photoCache = {};
+async function loadPhoto(it){
+  if (!it.wp || typeof fetch === "undefined") return null;
+  if (it.wp in photoCache) return photoCache[it.wp];
+  try {
+    const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${enc(it.wp)}`);
+    if (!res.ok) throw new Error("no page");
+    const j = await res.json();
+    const orig = j.originalimage, th = j.thumbnail;
+    let src = null;
+    if (orig && orig.width <= 1400) src = orig.source;
+    else if (th && th.source) src = th.source.replace(/\/\d+px-/, "/800px-");
+    photoCache[it.wp] = src ? {src, page: (j.content_urls && j.content_urls.mobile && j.content_urls.mobile.page) || `https://en.wikipedia.org/wiki/${enc(it.wp)}`} : null;
+  } catch(e){ photoCache[it.wp] = null; }
+  return photoCache[it.wp];
+}
+function photoFallback(it, why){
+  const btns = [ext(L_maps(it), "Google Maps photos " + icon("ext","i s"))];
+  if (it.c === "gaff") btns.push(ext(L_google(it.n + " " + it.city + " hostelworld photos"), "Hostelworld photos " + icon("ext","i s")));
+  const msg = it.c === "gaff" ? "Room photos belong to the booking sites, so they open there."
+    : why === "blocked" ? "Photos show here once the app has its own web address. Inside Claude, open them in Google Maps."
+    : "No photo saved for this one yet.";
+  return `${icon("image")}<span>${msg}</span><div class="row" style="justify-content:center">${btns.join("")}</div>`;
+}
+
+/* ---------- detail sheet ---------- */
+let lastFocus = null;
+function openDetail(id){
+  const it = D.places.find(p => p.id === id); if (!it) return;
+  const c = CAT[it.c], col = cssv(c.v);
+  lastFocus = document.activeElement;
+  const km = userLoc ? distText(dist(userLoc, it)) : null;
+  const d = it.d || {};
+  const unk = '<span class="unk">Not checked yet</span>';
+  let body = "";
+  body += `<div class="photo" id="photoBox" data-id="${it.id}">${it.wp || googleKey() ? `${icon("image")}<span>Loading photo…</span>` : photoFallback(it, "none")}</div>`;
+  const facts = [];
+  const pr = itemLocal(it);
+  const converted = it.p && dispCur(it.cc, it.cur) !== it.cur;
+  if (it.c !== "move") facts.push(`<div class="fact"><span class="l">${it.c === "cool" ? "Cost" : "Price"}${it.pu && pr ? ", " + esc(it.pu) : ""}</span>${pr ? `<b>${esc(pr)}</b> <span class="note">${esc(gbpRange(it.p, it.cur))}</span>${converted ? `<div class="note">Listed as ${esc(rangeText(it.p, it.cur))}, converted at your saved rate</div>` : ""}${it.cost ? `<div class="note">${esc(it.cost)}</div>` : ""}` : it.cost ? esc(it.cost) : '<span class="unk">Check live</span>'}</div>`);
+  facts.push(`<div class="fact"><span class="l">Reviews</span>${it.r != null ? `${starsHTML(it.r)}<div class="note">${esc(it.rs)}${it.rc ? `, ${it.rc.toLocaleString("en-GB")} reviews` : ""}</div>` : '<span class="unk">Not saved yet</span>'}<div id="gRating"></div></div>`);
+  if (it.c === "gaff"){
+    facts.push(`<div class="fact"><span class="l">Breakfast</span>${d.breakfast ? esc(d.breakfast) : unk}</div>`);
+    facts.push(`<div class="fact"><span class="l">Shared or private</span>${d.privacy ? esc(d.privacy) : unk}</div>`);
+    facts.push(`<div class="fact"><span class="l">Beds</span>${d.beds ? esc(d.beds) : unk}</div>`);
+    facts.push(`<div class="fact"><span class="l">Toilet</span>${d.toilet ? esc(d.toilet) : unk}</div>`);
+    facts.push(`<div class="fact wide"><span class="l">Rooms</span>${d.room ? esc(d.room) : unk}</div>`);
+  }
+  if (it.best) facts.push(`<div class="fact"><span class="l">Best time</span>${esc(it.best)}</div>`);
+  if (it.busy) facts.push(`<div class="fact"><span class="l">How busy</span>${esc(it.busy)}</div>`);
+  if (km) facts.push(`<div class="fact"><span class="l">Distance</span>${km}</div>`);
+  body += `<div class="facts">${facts.join("")}</div>`;
+  if (it.s.length) body += `<h4>${it.c === "move" ? "What leaves from here" : "What it’s known for"}</h4><ul class="known">${it.s.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  if (it.tips.length) body += `<h4>Good to know</h4><ul class="known">${it.tips.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  if (it.c === "move"){
+    const rel = D.routes.filter(r => r.a.includes(it.city) || r.b.includes(it.city));
+    if (rel.length) body += `<h4>Saved routes</h4><ul class="known">${rel.map(r => `<li>${esc(r.a)} → ${esc(r.b)}, ${esc(r.mode.toLowerCase())}${r.p ? `, ${esc(routeLocal(r))}` : ""}</li>`).join("")}</ul>`;
+  }
+  body += `<div class="actions">
+    <a class="btn primary" href="${esc(L_dir(it))}" target="_blank" rel="noopener">${icon("nav")}Directions</a>
+    <a class="btn" href="${esc(L_apple(it))}" target="_blank" rel="noopener">${icon("nav")}Apple Maps</a>
+    ${it.c === "gaff" ? `<a class="btn" href="${esc(L_booking(it.n + " " + it.city))}" target="_blank" rel="noopener">Booking.com</a><a class="btn" href="${esc(L_google(it.n + " " + it.city + " hostelworld"))}" target="_blank" rel="noopener">Hostelworld</a>` : ""}
+    <a class="btn" href="${esc(satLink(it.lat, it.lng, it.ap ? 16 : 18))}" target="_blank" rel="noopener">${icon("layers")}Satellite view</a>
+    <a class="btn" href="${esc(L_google(it.n + " " + it.city + " reviews"))}" target="_blank" rel="noopener">${icon("ext")}Read reviews</a>
+  </div>`;
+  if (it.ap) body += `<p class="note">The pin is approximate. Directions goes to the real address.</p>`;
+  body += `<div class="srcs">${it.verified ? `Checked ${esc(it.chk)}. Sources: ${it.src.map(s => `<a href="${esc(s[1])}" target="_blank" rel="noopener">${esc(s[0])}</a>`).join(", ")}` : "Not checked yet. Prices are typical, not looked up, so confirm on the day."}</div>`;
+
+  $("#sheetRoot").innerHTML = `<div class="sheet-wrap"><div class="backdrop" data-close></div>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" style="--c:${col}">
+      <div class="grab" aria-hidden="true"></div>
+      <div class="sheet-head"><div><span class="kind"><span class="dot"></span>${esc(c.one)}${it.c === "cool" && it.t.length ? `, ${esc(it.t.join(", ").toLowerCase())}` : ""}</span>
+        <h2 id="sheet-title">${esc(it.n)}</h2><div class="note">${esc(it.city)}, ${esc(D.countries[it.cc].name)}</div></div>
+        <button class="icon-btn" data-close aria-label="Close">${icon("x")}</button></div>
+      ${body}
+    </div></div>`;
+  const sheet = $("#sheetRoot .sheet");
+  $("#sheetRoot").querySelectorAll("[data-close]").forEach(b => b.onclick = closeDetail);
+  sheet.querySelector("button[data-close]").focus();
+  highlightPin(it);
+  const box0 = $("#photoBox");
+  if (googleKey()) googlePlace(it).then(pl => {
+    const box = $("#photoBox"); if (!box || box.dataset.id !== it.id) return;
+    if (pl){ applyGoogleExtras(it, pl); if (pl.photos && pl.photos.length){ showGooglePhoto(box, it, pl); return; } }
+    wikiInto(box, it);
+  });
+  else if (it.wp) wikiInto(box0, it);
+}
+function closeDetail(){ $("#sheetRoot").innerHTML = ""; highlightPin(null); if (lastFocus && lastFocus.focus) lastFocus.focus(); }
+function openCountryPicker(){
+  lastFocus = document.activeElement;
+  $("#sheetRoot").innerHTML = `<div class="sheet-wrap"><div class="backdrop" data-close></div>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="cp-title">
+      <div class="grab" aria-hidden="true"></div>
+      <div class="sheet-head"><h2 id="cp-title" style="margin:0 0 12px">Where are you?</h2><button class="icon-btn" data-close aria-label="Close">${icon("x")}</button></div>
+      <button class="btn ${S.countryMode === "auto" ? "primary" : ""}" id="cp-auto" type="button" style="width:100%;margin-bottom:12px">${icon("locate")}Use my location</button>
+      <div class="cgrid">${Object.entries(D.countries).map(([k, x]) => `<button data-pick="${k}" aria-pressed="${S.country === k && S.countryMode === "manual"}"><span class="f" aria-hidden="true">${x.flag}</span>${esc(x.name)}</button>`).join("")}</div>
+      <p class="note" style="margin-top:12px">Picking a country here switches off automatic location until you turn it back on.</p>
+    </div></div>`;
+  $("#sheetRoot").querySelectorAll("[data-close]").forEach(b => b.onclick = closeDetail);
+  $("#cp-auto").onclick = () => { S.countryMode = "auto"; persist(); closeDetail(); locate(true); };
+  $("#sheetRoot").querySelectorAll("[data-pick]").forEach(b => b.onclick = () => { closeDetail(); setCountry(b.dataset.pick, true); });
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#sheetRoot").innerHTML) closeDetail(); });
+
+function setCountry(cc, manual){
+  if (manual) S.countryMode = "manual";
+  const changed = S.country !== cc;
+  S.country = cc; persist();
+  ["gaff","munch","cool"].forEach(k => ui.lists[k].city = "");
+  if (changed && map){ const c = D.countries[cc]; reduceMotion ? map.setView(c.c, c.z) : map.flyTo(c.c, c.z, {duration:.8}); }
+  rerender();
+}
+
+/* ---------- location ---------- */
+const TEST_SPOTS = D.cities.map(c => c[0] === "Bangkok" ? ["Bangkok", 13.7466, 100.5393] : c);
+function applyTestLocation(){
+  if (!S.testLoc || S.testLoc === "off") return false;
+  const c = TEST_SPOTS.find(x => x[0] === S.testLoc) || TEST_SPOTS[0];
+  userLoc = {lat: c[1], lng: c[2]}; locStatus = "test";
+  const cc = countryAt(userLoc.lat, userLoc.lng);
+  if (S.countryMode === "auto" && cc && cc !== S.country){ S.country = cc; persist(); }
+  return true;
+}
+function locate(prompted){
+  if (applyTestLocation()){
+    updateMe(); rerender();
+    if (prompted){ if (map && ui.view === "map") map.setView([userLoc.lat, userLoc.lng], 13); toast(`Using your test location: ${S.testLoc}. Turn it off in Settings.`); }
+    return;
+  }
+  if (!("geolocation" in navigator)){ locStatus = "unavailable"; renderHeader(); if (prompted) toast("Location isn’t available here. Pick a country instead."); return; }
+  locStatus = "asking"; renderHeader();
+  navigator.geolocation.getCurrentPosition(pos => {
+    userLoc = {lat: pos.coords.latitude, lng: pos.coords.longitude};
+    const cc = countryAt(userLoc.lat, userLoc.lng);
+    locStatus = cc ? "ok" : "outside";
+    if (S.countryMode === "auto" && cc && cc !== S.country) setCountry(cc, false);
+    updateMe();
+    if (prompted && map && ui.view === "map") map.setView([userLoc.lat, userLoc.lng], cc ? 12 : map.getZoom());
+    rerender();
+  }, err => {
+    locStatus = err && err.code === 1 ? "denied" : "unavailable"; renderHeader();
+    if (ui.view === "setup") renderPage();
+    if (prompted) toast(locStatus === "denied" ? "Location is blocked. Pick a country instead." : "Couldn’t find you. Try again with signal.");
+  }, {enableHighAccuracy:false, timeout:12000, maximumAge:600000});
+}
+
+/* ---------- map ---------- */
+let map = null, pinLayer, routeLayer, meMarker, selMarker, landLayer, mapReady = false;
+const SAT_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const SAT_LABELS = "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}";
+let satLayer = null, satLabelLayer = null, satAttr = null, satOK = null;
+const satLink = (lat, lng, z) => `https://www.google.com/maps/@?api=1&map_action=map&center=${(+lat).toFixed(5)},${(+lng).toFixed(5)}&zoom=${Math.round(z)}&basemap=satellite`;
+function testSatellite(){
+  return new Promise(res => {
+    let done = false; const fin = v => { if (!done){ done = true; res(v); } };
+    const img = new Image();
+    img.onload = () => fin(true); img.onerror = () => fin(false);
+    setTimeout(() => fin(false), 6000);
+    img.src = SAT_URL.replace("{z}", "4").replace("{y}", "7").replace("{x}", "12");
+  });
+}
+async function setBasemap(mode){
+  if (!map) return;
+  if (mode === "sat"){
+    if (satOK === null){ ui.satChecking = true; renderMapUI(); satOK = await testSatellite(); ui.satChecking = false; }
+    if (!satOK){ ui.basemap = "map"; ui.satHelp = true; ui.mapFilters = false; renderMapUI(); return; }
+    if (!satLayer){
+      satLayer = L.tileLayer(SAT_URL, {maxZoom:19, maxNativeZoom:18});
+      satLabelLayer = L.tileLayer(SAT_LABELS, {maxZoom:19, maxNativeZoom:18});
+      satAttr = L.control.attribution({position:"bottomleft", prefix:false}).addAttribution("Imagery © Esri, Maxar, Earthstar Geographics");
+    }
+    satLayer.addTo(map); satLabelLayer.addTo(map); satAttr.addTo(map);
+    landLayer.setStyle({fillOpacity:0, opacity:0});
+    $("#map").classList.add("sat");
+    ui.basemap = "sat"; ui.satHelp = false;
+  } else {
+    if (satLayer){ map.removeLayer(satLayer); map.removeLayer(satLabelLayer); satAttr.remove(); }
+    landLayer.setStyle({fillOpacity:1, opacity:1});
+    $("#map").classList.remove("sat");
+    ui.basemap = "map";
+  }
+  renderMapUI();
+}
+function ensureMap(){
+  if (map || mapReady) return;
+  mapReady = true;
+  const mv = $("#mapview");
+  mv.innerHTML = `<div id="map" role="application" aria-label="Map of Southeast Asia with saved places"></div>
+    <div class="map-top" id="mapTop"></div>
+    <div class="basemap" id="basemapSeg"></div>
+    <div id="filterPanel"></div>
+    <div class="map-side" id="mapSide"></div>
+    <div class="near" id="near"></div>`;
+  if (typeof L === "undefined"){
+    $("#map").innerHTML = `<div class="map-msg"><div><b>The map couldn’t load.</b><br>It needs a connection the first time. Your lists in Gaffs, Munch and Cool still work.</div></div>`;
+    return;
+  }
+  map = L.map("map", {zoomControl:false, attributionControl:false, minZoom:4, maxZoom:16, zoomSnap:.5, maxBounds:[[-16,82],[33,132]], maxBoundsViscosity:.7, preferCanvas:true});
+  const feats = [];
+  GEO.forEach(c => c.p.forEach(r => feats.push({type:"Feature", properties:{cc:c.cc}, geometry:{type:"Polygon", coordinates:[r]}})));
+  landLayer = L.geoJSON({type:"FeatureCollection", features:feats}, {interactive:false, style: f => ({color:cssv("--border-land"), weight:1, fillColor: f.properties.cc ? cssv("--land-trip") : cssv("--land"), fillOpacity:1})}).addTo(map);
+  const cities = L.layerGroup().addTo(map);
+  D.cities.forEach(([n, la, ln]) => L.marker([la, ln], {interactive:false, keyboard:false, icon:L.divIcon({className:"city-label", html:`<span>${esc(n)}</span>`, iconSize:[0,0]})}).addTo(cities));
+  routeLayer = L.layerGroup();
+  const acc = cssv("--accent");
+  for (let i = 0; i < D.trip.length - 1; i++){
+    const a = D.trip[i], b = D.trip[i+1], fly = b[3] === 1;
+    L.polyline([[a[0],a[1]],[b[0],b[1]]], {color:acc, weight: fly ? 2 : 3, opacity:.85, dashArray: fly ? "2 8" : "8 7", interactive:false}).addTo(routeLayer);
+  }
+  for (let i = 0; i < D.tripMaybe.length; i += 2){
+    L.polyline([D.tripMaybe[i], D.tripMaybe[i+1]], {color:acc, weight:1.5, opacity:.5, dashArray:"2 8", interactive:false}).addTo(routeLayer);
+  }
+  if (ui.showRoute) routeLayer.addTo(map);
+  pinLayer = L.layerGroup().addTo(map);
+  const renderer = L.canvas({tolerance:10});
+  pinLayer._r = renderer;
+  map.on("zoomend", () => $("#map").classList.toggle("show-cities", map.getZoom() >= 6.5));
+  const c = D.countries[S.country]; map.setView(c.c, c.z);
+  $("#map").classList.toggle("show-cities", map.getZoom() >= 6.5);
+  updateMe();
+}
+function mapItems(){
+  return D.places.filter(p => ui.mapCats.has(p.c))
+    .filter(p => p.c !== "gaff" || (passPrice(p, ui.mapMaxGBP) && passRating(p, ui.mapMinR)));
+}
+function drawPins(){
+  if (!map) return;
+  pinLayer.clearLayers();
+  const ink = cssv("--sea");
+  mapItems().forEach(p => {
+    const m = L.circleMarker([p.lat, p.lng], {renderer:pinLayer._r, radius: p.c === "move" ? 6 : 7.5, color:ink, weight:2.5, fillColor:cssv(CAT[p.c].v), fillOpacity:1, bubblingMouseEvents:false});
+    m.on("click", () => openDetail(p.id));
+    m.bindTooltip(esc(p.n), {direction:"top", offset:[0,-6]});
+    m.addTo(pinLayer);
+  });
+}
+function highlightPin(it){
+  if (!map) return;
+  if (selMarker){ map.removeLayer(selMarker); selMarker = null; }
+  if (it) selMarker = L.circleMarker([it.lat, it.lng], {radius:14, color:cssv(CAT[it.c].v), weight:2.5, fill:false, interactive:false}).addTo(map);
+}
+function updateMe(){
+  if (!map) return;
+  if (meMarker){ map.removeLayer(meMarker); meMarker = null; }
+  if (userLoc) meMarker = L.circleMarker([userLoc.lat, userLoc.lng], {radius:8, color:"#ffffff", weight:3, fillColor:cssv("--move"), fillOpacity:1, interactive:false}).addTo(map);
+}
+function renderMapUI(){
+  if (!$("#mapTop")) return;
+  $("#mapTop").innerHTML = Object.entries(CAT).filter(([k]) => k !== "move").map(([k, c]) => `<button class="chip" style="--c:${cssv(c.v)}" data-cat="${k}" aria-pressed="${ui.mapCats.has(k)}"><span class="dot"></span>${c.label}</button>`).join("")
+    + `<button class="chip" data-filters aria-pressed="${ui.mapFilters}">${icon("sliders","i s")}Filters</button>`;
+  $("#mapTop").querySelectorAll("[data-cat]").forEach(b => b.onclick = () => { const k = b.dataset.cat; ui.mapCats.has(k) ? ui.mapCats.delete(k) : ui.mapCats.add(k); renderMapUI(); });
+  $("#mapTop").querySelector("[data-filters]").onclick = () => { ui.mapFilters = !ui.mapFilters; ui.satHelp = false; renderMapUI(); };
+
+  const sb = $("#satBtn");
+  if (sb){ sb.setAttribute("aria-pressed", ui.basemap === "sat"); sb.setAttribute("aria-label", ui.satChecking ? "Checking satellite" : ui.basemap === "sat" ? "Back to map view" : "Satellite view"); }
+  const bm = null;
+  if (bm){
+    bm.innerHTML = `<div class="seg" role="group" aria-label="Map style"><button data-bm="map" aria-pressed="${ui.basemap !== "sat"}">Map</button><button data-bm="sat" aria-pressed="${ui.basemap === "sat"}">${ui.satChecking ? "Checking…" : "Satellite"}</button></div>`;
+    bm.querySelectorAll("[data-bm]").forEach(b => b.onclick = () => setBasemap(b.dataset.bm));
+  }
+  if (ui.satHelp && map){
+    const c = map.getCenter();
+    $("#filterPanel").innerHTML = `<div class="filter-panel" role="dialog" aria-label="Satellite view">
+      <b>Satellite can’t load inside Claude</b>
+      <p class="note" style="margin:0">Claude stops apps from loading map pictures from other websites. Once the app has its own web address, satellite works right here on this map. For now, open this spot in Google Maps.</p>
+      <div class="row"><a class="btn small primary" href="${esc(satLink(c.lat, c.lng, map.getZoom() + 1))}" target="_blank" rel="noopener">${icon("layers","i s")}Open in satellite view</a><button class="btn small" id="satOk" type="button">OK</button></div></div>`;
+    $("#satOk").onclick = () => { ui.satHelp = false; renderMapUI(); };
+  } else
+  $("#filterPanel").innerHTML = ui.mapFilters ? `<div class="filter-panel">
+      <label class="field">Sort the list<select id="mf-sort">${[["near","Nearest"],["rated","Best reviewed"],["cheap","Cheapest first"],["dear","Priciest first"],["match","Best match"]].map(([v,l]) => `<option value="${v}" ${ui.mapSort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+      <div class="row"><label class="field">Gaffs: top price a night<select id="mf-max">${[["","Any"],["5","£5"],["8","£8"],["10","£10"],["15","£15"],["20","£20"]].map(([v,l]) => `<option value="${v}" ${String(ui.mapMaxGBP) === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+      <label class="field">Gaffs: reviews<select id="mf-minr">${[[0,"Any"],[4,"4 stars and up"],[4.5,"4.5 stars and up"]].map(([v,l]) => `<option value="${v}" ${+ui.mapMinR === v ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
+      <button class="btn small" id="mf-done" type="button">Done</button></div>` : "";
+  if (ui.mapFilters && !ui.satHelp){
+    $("#mf-sort").onchange = e => { ui.mapSort = e.target.value; renderNear(); };
+    $("#mf-max").onchange = e => { ui.mapMaxGBP = e.target.value; drawPins(); renderNear(); };
+    $("#mf-minr").onchange = e => { ui.mapMinR = +e.target.value; drawPins(); renderNear(); };
+    $("#mf-done").onclick = () => { ui.mapFilters = false; renderMapUI(); };
+  }
+  $("#mapSide").innerHTML = `<button class="icon-btn" id="satBtn" aria-label="Satellite view" aria-pressed="false">${icon("layers")}</button><button class="icon-btn" id="locBtn" aria-label="Show where I am">${icon("locate")}</button><button class="icon-btn" id="fitBtn" aria-label="Show the whole country">${icon("fit")}</button>`;
+  $("#satBtn").onclick = () => setBasemap(ui.basemap === "sat" ? "map" : "sat");
+  $("#locBtn").onclick = () => { if (userLoc && map){ map.setView([userLoc.lat, userLoc.lng], 12); } locate(true); };
+  $("#fitBtn").onclick = () => { if (map){ const c = D.countries[S.country]; map.setView(c.c, c.z); } };
+  drawPins(); renderNear();
+}
+function renderNear(){
+  const el = $("#near"); if (!el) return;
+  let items = mapItems();
+  let title;
+  if (userLoc && (locStatus === "ok" || locStatus === "test")){ title = "Closest to you"; }
+  else { items = items.filter(p => p.cc === S.country); title = `In ${D.countries[S.country].name}`; }
+  const how = ui.mapSort === "near" && !userLoc ? "rated" : ui.mapSort;
+  items = sortItems(items, how).slice(0, 15);
+  const side = $("#mapSide"); 
+  if (!items.length){ el.innerHTML = `<span class="near-title">Nothing to show. Turn a category on.</span>`; if (side) side.style.bottom = "56px"; return; }
+  el.classList.toggle("closed", !!S.nearClosed);
+  el.innerHTML = `<button class="near-title" type="button" aria-expanded="${!S.nearClosed}">${esc(title)}${icon("chev","i")}</button>${S.nearClosed ? "" : `<div class="near-row">`}${S.nearClosed ? "" : items.map(p => {
+    const c = CAT[p.c]; const pr = itemLocal(p);
+    const bits = [userLoc ? distText(dist(userLoc, p)) : p.city, pr ? `${pr} (${gbpRange(p.p, p.cur)})` : null, p.r != null ? `${(p.r/2).toFixed(1)} stars` : null].filter(Boolean);
+    return `<button class="ncard" style="--c:${cssv(c.v)}" data-near="${p.id}"><span class="k"><span class="dot"></span>${c.one}</span><b>${esc(p.n)}</b><span class="m">${esc(bits.join(", "))}</span></button>`;
+  }).join("") + `</div>`}`;
+  el.querySelector(".near-title").onclick = () => { S.nearClosed = !S.nearClosed; persist(); renderNear(); };
+  if (side) side.style.bottom = (el.offsetHeight + 8) + "px";
+  el.querySelectorAll("[data-near]").forEach(b => b.onclick = () => {
+    const p = D.places.find(x => x.id === b.dataset.near);
+    if (map){ reduceMotion ? map.setView([p.lat, p.lng], Math.max(map.getZoom(), 13)) : map.flyTo([p.lat, p.lng], Math.max(map.getZoom(), 13), {duration:.6}); }
+    openDetail(p.id);
+  });
+}
+
+/* ---------- full-height fix for home-screen mode ---------- */
+function fitStandalone(){
+  const sa = window.navigator.standalone === true || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+  const root = document.documentElement;
+  root.classList.toggle("standalone", !!sa);
+  root.classList.toggle("fill-bottom", !!sa && !!S.fillBottom);
+}
+fitStandalone();
+window.addEventListener("resize", fitStandalone);
+window.addEventListener("orientationchange", () => setTimeout(fitStandalone, 300));
+
+/* ---------- boot ---------- */
+$("#countryBtn").onclick = openCountryPicker;
+show(currentView());
+if (applyTestLocation()){ updateMe(); if (map) map.setView([userLoc.lat, userLoc.lng], 12); renderHeader(); rerender(); }
+else if (S.countryMode === "auto") locate(false);
+window.addEventListener("resize", () => { if (ui.view === "map") renderNear(); });
+</script>
+</body>
+</html>
